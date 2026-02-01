@@ -19,9 +19,24 @@
   });
 
   function startResize(e: MouseEvent) {
+    // If drawer is closed, open it and set height based on mouse position
+    if (!bottomDrawerStore.open) {
+      bottomDrawerStore.open = true;
+      // Calculate initial height from bottom of viewport to mouse position
+      const initialHeight = Math.max(200, Math.min(window.innerHeight - 100, window.innerHeight - e.clientY));
+      drawerHeight = initialHeight;
+      startHeight = initialHeight;
+      
+      // Save the new height
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("bottom-drawer-height", initialHeight.toString());
+      }
+    } else {
+      startHeight = drawerHeight;
+    }
+    
     isResizing = true;
     startY = e.clientY;
-    startHeight = drawerHeight;
     e.preventDefault();
   }
 
@@ -135,9 +150,7 @@
             <div class="p-4">Unknown tab type</div>
           {/if}
         {:else}
-          <div class="flex items-center justify-center h-full text-text-muted">
-            Open a pod's logs to get started
-          </div>
+          <div class="flex items-center justify-center h-full text-text-muted">Open a pod's logs to get started</div>
         {/if}
       </div>
     </div>
