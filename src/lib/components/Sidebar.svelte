@@ -52,8 +52,8 @@
   <!-- Cluster Switcher Area -->
   <div class="p-4 border-b border-border-subtle space-y-4">
     <div class="flex items-center gap-2 px-1">
-      <img src="/rustylens.svg" alt="Rustylens" class="w-6 h-6" />
-      <span class="font-bold text-lg">RustyLens</span>
+      <img src="/kore.svg" alt="Kore" class="w-6 h-6" />
+      <span class="font-bold text-lg">Kore</span>
     </div>
 
     <div class="space-y-3">

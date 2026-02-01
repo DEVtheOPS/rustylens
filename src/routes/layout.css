@@ -30,7 +30,7 @@
   --radius-button: var(--radius-button);
 }
 
-/* Base Variables (Rusty Theme - Default) */
+/* Base Variables (Kore Theme - Default) */
 :root {
   /* Surfaces */
   --bg-main: #1a1b1e;
@@ -39,10 +39,10 @@
   --bg-card: #25262b;
   --bg-popover: #2c2e33;
 
-  /* Actions (Rusty Orange) */
-  --color-primary: #ff5722;
-  --color-primary-hover: #f4511e;
-  --color-accent: #ff8a65;
+  /* Actions (Kubernetes Blue) */
+  --color-primary: #326CE5;
+  --color-primary-hover: #2555c7;
+  --color-accent: #5c9fd8;
 
   /* Text */
   --text-main: #e0e0e0;
@@ -69,7 +69,67 @@
   background-color: var(--bg-main);
 }
 
-/* Rusty Light Theme */
+/* Kore Light Theme */
+.kore-light {
+  /* Surfaces */
+  --bg-main: #f8f9fa;
+  --bg-sidebar: #e9ecef;
+  --bg-panel: #ffffff;
+  --bg-card: #f1f3f5;
+  --bg-popover: #dee2e6;
+
+  /* Actions (Kubernetes Blue) */
+  --color-primary: #326CE5;
+  --color-primary-hover: #2555c7;
+  --color-accent: #5c9fd8;
+
+  /* Text */
+  --text-main: #212529;
+  --text-muted: #868e96;
+  --text-inverse: #ffffff;
+
+  /* Borders */
+  --border-main: #ced4da;
+  --border-subtle: #e9ecef;
+
+  /* Status */
+  --color-success: #40c057;
+  --color-warning: #fd7e14;
+  --color-error: #fa5252;
+  --color-info: #228be6;
+}
+
+/* Rusty Theme (Legacy) */
+.rusty {
+  /* Surfaces */
+  --bg-main: #1a1b1e;
+  --bg-sidebar: #141517;
+  --bg-panel: #202124;
+  --bg-card: #25262b;
+  --bg-popover: #2c2e33;
+
+  /* Actions (Rusty Orange) */
+  --color-primary: #ff5722;
+  --color-primary-hover: #f4511e;
+  --color-accent: #ff8a65;
+
+  /* Text */
+  --text-main: #e0e0e0;
+  --text-muted: #9ca3af;
+  --text-inverse: #ffffff;
+
+  /* Borders */
+  --border-main: #373a40;
+  --border-subtle: #2c2e33;
+
+  /* Status */
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+  --color-info: #2196f3;
+}
+
+/* Rusty Light Theme (Legacy) */
 .rusty-light {
   /* Surfaces */
   --bg-main: #f8f9fa;

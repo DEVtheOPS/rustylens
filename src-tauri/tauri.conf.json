@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "rustylens",
+  "productName": "Kore",
   "version": "0.1.0",
-  "identifier": "com.devtheops.rustylens",
+  "identifier": "com.devtheops.kore",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "rustylens",
+        "title": "Kore - Kubernetes Orchestration and Resource Explorer",
         "width": 800,
         "height": 600,
         "maximized": true

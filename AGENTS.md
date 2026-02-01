@@ -1,8 +1,8 @@
 # Agent Instructions
 
-## Project Context: Rustylens
+## Project Context: Kore
 
-**Rustylens** is a high-performance Kubernetes IDE built as an OpenLens alternative. It leverages Tauri v2 for the backend (Rust) and Svelte 5 (Runes) for the frontend.
+**Kore** (Kubernetes Orchestration and Resource Explorer) is a high-performance Kubernetes IDE built as an OpenLens alternative. It leverages Tauri v2 for the backend (Rust) and Svelte 5 (Runes) for the frontend.
 
 ### Tech Stack
 
@@ -18,7 +18,7 @@
 3. **Kubernetes Interactions**:
     - **Commands**: Simple actions (list, delete) use `#[tauri::command]`.
     - **Streaming**: Resource watching uses Tauri Events (`start_pod_watch` -> `window.emit`).
-    - **Config**: Kubeconfigs are aggregated from `~/.kube/config` and `~/.rustylens/kubeconfigs/`.
+    - **Config**: Kubeconfigs are aggregated from `~/.kube/config` and `~/.kore/kubeconfigs/`.
 
 ### Component Library (`src/lib/components/ui/`)
 

@@ -1,20 +1,21 @@
-# Rustylens
+# Kore
 
-A lightweight, rusty, and blazing fast Kubernetes IDE built with Tauri v2 and Svelte 5. Designed as a performant alternative to OpenLens.
+**Kubernetes Orchestration and Resource Explorer** - A lightweight, open-source Kubernetes IDE built with Tauri v2 and Svelte 5.
 
-![Rustylens](https://raw.githubusercontent.com/tauri-apps/tauri/dev/.github/splash.png) <!-- Placeholder for actual screenshot -->
+![Kore](https://raw.githubusercontent.com/tauri-apps/tauri/dev/.github/splash.png) <!-- Placeholder for actual screenshot -->
 
 ## Features
 
 - **🚀 Blazing Fast**: Built on Rust and Tauri, consuming a fraction of the RAM of Electron-based competitors.
 - **🎨 Theming System**:
-  - **Rusty** (Default Dark)
-  - **Rusty Light**
+  - **Kore** (Default - Kubernetes Blue)
+  - **Kore Light**
   - **Dracula**
   - **Alucard** (Light Dracula)
+  - **Rusty** & **Rusty Light** (Legacy)
 - **☸️ Multi-Cluster Management**:
   - Supports standard `~/.kube/config`.
-  - Import and manage separate kubeconfigs in `~/.rustylens/kubeconfigs/`.
+  - Import and manage separate kubeconfigs in `~/.kore/kubeconfigs/`.
   - Instant context switching via Sidebar.
 - **⚡ Real-time Updates**: Kubernetes resources update in real-time using efficient watch streams.
 - **📊 Advanced Data Tables**:
@@ -77,10 +78,10 @@ pnpm tauri build
 
 ## Configuration
 
-Rustylens stores its configuration and imported kubeconfigs in:
-- **macOS/Linux**: `~/.rustylens/`
-- **Windows**: `C:\Users\<User>\.rustylens\`
+Kore stores its configuration and imported kubeconfigs in:
+- **macOS/Linux**: `~/.kore/`
+- **Windows**: `C:\Users\<User>\.kore\`
 
 ## License
 
-MIT
+GPL-3.0-or-later

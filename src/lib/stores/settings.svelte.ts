@@ -1,4 +1,4 @@
-export type Theme = 'rusty' | 'rusty-light' | 'dracula' | 'alucard';
+export type Theme = 'kore' | 'kore-light' | 'rusty' | 'rusty-light' | 'dracula' | 'alucard';
 
 export interface Settings {
   theme: Theme;
@@ -7,7 +7,7 @@ export interface Settings {
 
 class SettingsStore {
   value = $state<Settings>({
-    theme: 'rusty',
+    theme: 'kore',
     refreshInterval: 5000,
   });
 
