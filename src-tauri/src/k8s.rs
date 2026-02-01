@@ -595,11 +595,7 @@ pub async fn get_pod_events(
         .collect();
 
     // Sort by last_timestamp descending (most recent first)
-    event_infos.sort_by(|a, b| {
-        b.last_timestamp
-            .as_ref()
-            .cmp(&a.last_timestamp.as_ref())
-    });
+    event_infos.sort_by(|a, b| b.last_timestamp.as_ref().cmp(&a.last_timestamp.as_ref()));
 
     Ok(event_infos)
 }
@@ -694,7 +690,7 @@ pub struct VolumeMount {
 
 #[derive(serde::Serialize, Clone, Debug)]
 pub struct ProbeInfo {
-    probe_type: String, // "liveness", "readiness", "startup"
+    probe_type: String,   // "liveness", "readiness", "startup"
     handler_type: String, // "httpGet", "tcpSocket", "exec"
     details: String,
     initial_delay_seconds: i32,
