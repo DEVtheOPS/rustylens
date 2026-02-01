@@ -48,6 +48,7 @@ pub fn run() {
             // Cluster management commands
             cluster_manager::db_list_clusters,
             cluster_manager::db_get_cluster,
+            cluster_manager::db_migrate_legacy_configs,
             cluster_manager::db_update_cluster,
             cluster_manager::db_update_last_accessed,
             cluster_manager::db_delete_cluster,

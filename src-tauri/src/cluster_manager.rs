@@ -281,3 +281,75 @@ pub fn db_delete_cluster(id: String, state: State<ClusterManagerState>) -> Resul
     // Delete from database
     manager.delete_cluster(&id)
 }
+
+#[tauri::command]
+pub fn db_migrate_legacy_configs(state: State<ClusterManagerState>) -> Result<Vec<String>, String> {
+    use crate::import::{discover_contexts_in_folder, extract_context};
+    
+    let manager = state.0.lock().unwrap();
+    let kubeconfigs_dir = crate::config::get_kubeconfigs_dir();
+    
+    if !kubeconfigs_dir.exists() {
+        return Ok(vec![]); // No legacy configs to migrate
+    }
+    
+    // Discover all contexts from the kubeconfigs directory
+    let discovered = discover_contexts_in_folder(&kubeconfigs_dir)
+        .map_err(|e| format!("Failed to discover legacy configs: {}", e))?;
+    
+    let mut migrated = Vec::new();
+    let conn = manager.conn.lock().unwrap();
+    
+    for ctx in discovered {
+        // Check if this context already exists in the database
+        let existing = conn.query_row(
+            "SELECT COUNT(*) FROM clusters WHERE context_name = ?1",
+            [&ctx.context_name],
+            |row| row.get::<_, i64>(0),
+        ).unwrap_or(0);
+        
+        if existing > 0 {
+            // Already migrated, skip
+            continue;
+        }
+        
+        // Import this context
+        let id = uuid::Uuid::new_v4().to_string();
+        
+        // Extract this context to a new file
+        let config_path = match extract_context(
+            &PathBuf::from(&ctx.source_file),
+            &ctx.context_name,
+            &id,
+        ) {
+            Ok(path) => path,
+            Err(e) => {
+                eprintln!("Failed to extract context {}: {}", ctx.context_name, e);
+                continue;
+            }
+        };
+        
+        // Add to database
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs() as i64;
+        
+        conn.execute(
+            "INSERT INTO clusters (id, name, context_name, config_path, created_at, last_accessed)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            (
+                &id,
+                &ctx.context_name, // Use context name as display name initially
+                &ctx.context_name,
+                config_path.to_string_lossy().to_string(),
+                now,
+                now,
+            ),
+        ).map_err(|e| format!("Failed to insert cluster: {}", e))?;
+        
+        migrated.push(ctx.context_name);
+    }
+    
+    Ok(migrated)
+}
