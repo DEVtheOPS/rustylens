@@ -138,8 +138,8 @@
       for (const ctx of toImport) {
         await invoke("import_add_cluster", {
           name: ctx.display_name,
-          context_name: ctx.context_name,
-          source_file: ctx.source_file,
+          contextName: ctx.context_name,
+          sourceFile: ctx.source_file,
           icon: ctx.icon !== "🌐" ? ctx.icon : null,
           description: null,
           tags: [],
@@ -162,6 +162,17 @@
     error = null;
     onClose();
   }
+
+  // Check if all selected contexts have valid display names
+  const canImport = $derived(() => {
+    if (selectedContexts.size === 0) return false;
+    
+    const selectedCtxs = discoveredContexts.filter((ctx) =>
+      selectedContexts.has(ctx.context_name)
+    );
+    
+    return selectedCtxs.every((ctx) => ctx.display_name && ctx.display_name.trim().length > 0);
+  });
 </script>
 
 {#if isOpen}
@@ -341,12 +352,17 @@
                         />
                       </div>
                       <div class="flex flex-col gap-1 flex-1">
-                        <label class="text-xs text-text-muted">Display Name</label>
+                        <label class="text-xs text-text-muted">
+                          Display Name
+                          {#if selectedContexts.has(ctx.context_name)}
+                            <span class="text-red-400">*</span>
+                          {/if}
+                        </label>
                         <Input
                           value={ctx.display_name}
                           oninput={(e) => updateDisplayName(ctx.context_name, (e.currentTarget as HTMLInputElement).value)}
                           placeholder="My Cluster"
-                          class="flex-1"
+                          class="flex-1 {selectedContexts.has(ctx.context_name) && (!ctx.display_name || !ctx.display_name.trim()) ? 'border-red-500 border-2' : ''}"
                         />
                       </div>
                     </div>
@@ -366,19 +382,28 @@
 
       <!-- Footer -->
       {#if discoveredContexts.length > 0}
-        <div class="flex items-center justify-end gap-2 p-4 border-t border-border-main">
-          <Button variant="outline" onclick={handleClose}>Cancel</Button>
-          <Button
-            onclick={handleImportSelected}
-            disabled={loading || selectedContexts.size === 0}
-          >
-            {#if loading}
-              <Loader2 size={16} class="animate-spin" />
-              Importing...
-            {:else}
-              Import {selectedContexts.size} Cluster{selectedContexts.size !== 1 ? "s" : ""}
-            {/if}
-          </Button>
+        <div class="border-t border-border-main">
+          {#if selectedContexts.size > 0 && !canImport()}
+            <div class="px-4 pt-3 pb-0">
+              <div class="text-xs text-amber-500 bg-amber-500/10 border border-amber-500/20 rounded px-3 py-2">
+                ⚠️ Please provide a display name for all selected clusters before importing
+              </div>
+            </div>
+          {/if}
+          <div class="flex items-center justify-end gap-2 p-4">
+            <Button variant="outline" onclick={handleClose}>Cancel</Button>
+            <Button
+              onclick={handleImportSelected}
+              disabled={loading || !canImport()}
+            >
+              {#if loading}
+                <Loader2 size={16} class="animate-spin" />
+                Importing...
+              {:else}
+                Import {selectedContexts.size} Cluster{selectedContexts.size !== 1 ? "s" : ""}
+              {/if}
+            </Button>
+          </div>
         </div>
       {/if}
     </div>
