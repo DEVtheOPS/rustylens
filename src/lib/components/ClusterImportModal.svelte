@@ -18,7 +18,9 @@
   interface DiscoveredContext {
     context_name: string;
     cluster_name: string;
-    file_path: string;
+    user_name: string;
+    namespace: string | null;
+    source_file: string;
     display_name: string;
     icon: string;
   }
@@ -136,9 +138,11 @@
       for (const ctx of toImport) {
         await invoke("import_add_cluster", {
           name: ctx.display_name,
-          contextName: ctx.context_name,
-          filePath: ctx.file_path,
+          context_name: ctx.context_name,
+          source_file: ctx.source_file,
           icon: ctx.icon !== "🌐" ? ctx.icon : null,
+          description: null,
+          tags: [],
         });
       }
 
@@ -226,38 +230,64 @@
       <div class="flex-1 overflow-y-auto p-4">
         {#if activeTab === "file"}
           <div class="space-y-4">
-            <p class="text-text-muted text-sm">
-              Select a kubeconfig file to import. If it contains multiple contexts, you can
-              choose which ones to import.
-            </p>
+            <div class="bg-bg-panel p-4 rounded-lg border border-border-main">
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
+                  1
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium mb-1">Select a kubeconfig file</p>
+                  <p class="text-text-muted text-sm">
+                    Choose a YAML file containing your Kubernetes cluster configuration. 
+                    If the file has multiple contexts, you'll be able to select which ones to import.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {#if discoveredContexts.length === 0}
-              <Button onclick={handleImportFile} disabled={loading}>
-                {#if loading}
-                  <Loader2 size={16} class="animate-spin" />
-                  Loading...
-                {:else}
-                  Select File
-                {/if}
-              </Button>
+              <div class="flex justify-center">
+                <Button onclick={handleImportFile} disabled={loading}>
+                  {#if loading}
+                    <Loader2 size={16} class="animate-spin" />
+                    Analyzing file...
+                  {:else}
+                    <FileText size={16} />
+                    Choose Kubeconfig File
+                  {/if}
+                </Button>
+              </div>
             {/if}
           </div>
         {:else}
           <div class="space-y-4">
-            <p class="text-text-muted text-sm">
-              Select a folder to scan for kubeconfig files. All discovered contexts will be
-              listed below.
-            </p>
+            <div class="bg-bg-panel p-4 rounded-lg border border-border-main">
+              <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
+                  1
+                </div>
+                <div class="flex-1">
+                  <p class="font-medium mb-1">Select a folder</p>
+                  <p class="text-text-muted text-sm">
+                    Choose a folder to scan for kubeconfig files. All valid configurations 
+                    and their contexts will be discovered automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {#if discoveredContexts.length === 0}
-              <Button onclick={handleImportFolder} disabled={loading}>
-                {#if loading}
-                  <Loader2 size={16} class="animate-spin" />
-                  Scanning...
-                {:else}
-                  Select Folder
-                {/if}
-              </Button>
+              <div class="flex justify-center">
+                <Button onclick={handleImportFolder} disabled={loading}>
+                  {#if loading}
+                    <Loader2 size={16} class="animate-spin" />
+                    Scanning folder...
+                  {:else}
+                    <Folder size={16} />
+                    Choose Folder
+                  {/if}
+                </Button>
+              </div>
             {/if}
           </div>
         {/if}
@@ -270,9 +300,19 @@
 
         {#if discoveredContexts.length > 0}
           <div class="mt-6 space-y-3">
-            <h3 class="font-semibold">
-              Discovered Contexts ({selectedContexts.size} selected)
-            </h3>
+            <div class="flex items-start gap-3 mb-4">
+              <div class="flex-shrink-0 w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
+                2
+              </div>
+              <div class="flex-1">
+                <h3 class="font-semibold">
+                  Configure and Import ({selectedContexts.size} of {discoveredContexts.length} selected)
+                </h3>
+                <p class="text-text-muted text-sm mt-1">
+                  Review the discovered contexts, customize their names and icons, then click Import to add them to Kore.
+                </p>
+              </div>
+            </div>
 
             {#each discoveredContexts as ctx (ctx.context_name)}
               <div
@@ -291,24 +331,30 @@
 
                   <div class="flex-1 space-y-2">
                     <div class="flex items-center gap-2">
-                      <Input
-                        value={ctx.icon}
-                        oninput={(e) => updateIcon(ctx.context_name, (e.currentTarget as HTMLInputElement).value)}
-                        placeholder="Icon (emoji or URL)"
-                        class="w-16 text-center"
-                      />
-                      <Input
-                        value={ctx.display_name}
-                        oninput={(e) => updateDisplayName(ctx.context_name, (e.currentTarget as HTMLInputElement).value)}
-                        placeholder="Display name"
-                        class="flex-1"
-                      />
+                      <div class="flex flex-col gap-1">
+                        <label class="text-xs text-text-muted">Icon</label>
+                        <Input
+                          value={ctx.icon}
+                          oninput={(e) => updateIcon(ctx.context_name, (e.currentTarget as HTMLInputElement).value)}
+                          placeholder="🌐"
+                          class="w-16 text-center"
+                        />
+                      </div>
+                      <div class="flex flex-col gap-1 flex-1">
+                        <label class="text-xs text-text-muted">Display Name</label>
+                        <Input
+                          value={ctx.display_name}
+                          oninput={(e) => updateDisplayName(ctx.context_name, (e.currentTarget as HTMLInputElement).value)}
+                          placeholder="My Cluster"
+                          class="flex-1"
+                        />
+                      </div>
                     </div>
 
-                    <div class="text-xs text-text-muted">
-                      <div>Context: {ctx.context_name}</div>
-                      <div>Cluster: {ctx.cluster_name}</div>
-                      <div class="truncate">File: {ctx.file_path}</div>
+                    <div class="text-xs text-text-muted bg-bg-main p-2 rounded">
+                      <div><span class="font-medium">Context:</span> {ctx.context_name}</div>
+                      <div><span class="font-medium">Cluster:</span> {ctx.cluster_name}</div>
+                      <div class="truncate"><span class="font-medium">Source:</span> {ctx.source_file}</div>
                     </div>
                   </div>
                 </div>
