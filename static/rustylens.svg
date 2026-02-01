@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="url(#bright-rust)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <defs>
+    <linearGradient id="bright-rust" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c" /> <!-- Orange 400 -->
+      <stop offset="50%" stop-color="#f97316" /> <!-- Orange 500 -->
+      <stop offset="100%" stop-color="#ea580c" /> <!-- Orange 600 -->
+    </linearGradient>
+  </defs>
+  <!-- Outer Ring glow -->
+  <circle cx="12" cy="12" r="10" stroke="#fdba74" stroke-opacity="0.3" stroke-width="4" />
+  
+  <circle cx="12" cy="12" r="10" />
+  <path d="m14.31 8 5.74 9.94" />
+  <path d="M9.69 8h11.48" />
+  <path d="m7.38 12 5.74-9.94" />
+  <path d="M9.69 16 3.95 6.06" />
+  <path d="M14.31 16H2.83" />
+  <path d="m16.62 12-5.74 9.94" />
+</svg>

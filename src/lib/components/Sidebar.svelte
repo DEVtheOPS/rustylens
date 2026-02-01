@@ -1,6 +1,5 @@
 <script lang="ts">
   import {
-    Aperture,
     Layers,
     Settings,
     Box,
@@ -53,7 +52,7 @@
   <!-- Cluster Switcher Area -->
   <div class="p-4 border-b border-border-subtle space-y-4">
     <div class="flex items-center gap-2 px-1">
-      <Aperture size={20} class="text-primary" />
+      <img src="/rustylens.svg" alt="Rustylens" class="w-6 h-6" />
       <span class="font-bold text-lg">RustyLens</span>
     </div>
 
