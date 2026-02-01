@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "Kore - Kubernetes Orchestration and Resource Explorer",
+        "title": "Kore",
         "width": 800,
         "height": 600,
         "maximized": true

@@ -81,18 +81,18 @@
 <div class="flex flex-col bg-bg-main">
   <!-- Resize Handle (Always Shown) -->
   <div
-    class="h-2 bg-bg-panel hover:bg-primary transition-colors flex items-center justify-center group"
+    class="h-2 bg-bg-sidebar transition-colors flex items-center justify-center group"
     style="cursor: ns-resize !important;"
     onmousedown={startResize}
     role="separator"
     aria-orientation="horizontal"
   >
-    <div class="w-12 h-1 bg-border rounded-full group-hover:bg-primary transition-colors pointer-events-none"></div>
+    <hr class="hover:bg-primary" />
   </div>
 
   <!-- Tabs Bar (Always Shown) -->
   <div
-    class="flex items-center justify-between bg-bg-panel px-2 cursor-pointer hover:bg-bg-main/50 transition-colors"
+    class="flex items-center justify-between bg-bg-sidebar px-2 cursor-pointer hover:bg-bg-main/50 transition-colors"
     onclick={handleTabBarClick}
   >
     <div class="flex items-center gap-1 bg-bg-sidebar overflow-x-auto flex-1">
@@ -125,17 +125,11 @@
     </div>
 
     <div class="flex items-center gap-2 ml-2">
-      <button
-        class="p-1 hover:bg-bg-main rounded transition-colors"
-        onclick={() => bottomDrawerStore.toggle()}
-        title={bottomDrawerStore.open ? "Minimize" : "Maximize"}
-      >
-        {#if bottomDrawerStore.open}
-          <ChevronDown size={18} />
-        {:else}
-          <ChevronUp size={18} />
-        {/if}
-      </button>
+      {#if bottomDrawerStore.open}
+        <ChevronDown size={18} />
+      {:else}
+        <ChevronUp size={18} />
+      {/if}
     </div>
   </div>
 
