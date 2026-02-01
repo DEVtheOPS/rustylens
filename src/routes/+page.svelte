@@ -4,8 +4,9 @@
   import DataTable from "$lib/components/ui/DataTable.svelte";
   import Button from "$lib/components/ui/Button.svelte";
   import { clustersStore, type Cluster } from "$lib/stores/clusters.svelte";
+  import { bookmarksStore } from "$lib/stores/bookmarks.svelte";
   import { confirm } from "@tauri-apps/plugin-dialog";
-  import { Plus, Settings as SettingsIcon, ExternalLink } from "lucide-svelte";
+  import { Plus, Settings as SettingsIcon, ExternalLink, Pin, PinOff } from "lucide-svelte";
   import type { Column } from "$lib/components/ui/DataTable.svelte";
   import type { MenuItem } from "$lib/components/ui/Menu.svelte";
 
@@ -47,10 +48,18 @@
   }
 
   function getActions(cluster: Cluster): MenuItem[] {
+    const isBookmarked = bookmarksStore.isBookmarked(cluster.id);
+    
     return [
       {
         label: "Open",
         action: () => goto(`/cluster/${cluster.id}`),
+      },
+      {
+        label: isBookmarked ? "Unpin from Sidebar" : "Pin to Sidebar",
+        action: () => {
+          bookmarksStore.toggle(cluster.id);
+        },
       },
       {
         label: "Settings",
@@ -157,7 +166,12 @@
               {/if}
             </div>
           {:else if column.id === "name"}
-            <span class="font-medium">{cluster.name}</span>
+            <div class="flex items-center gap-2">
+              <span class="font-medium">{cluster.name}</span>
+              {#if bookmarksStore.isBookmarked(cluster.id)}
+                <Pin size={14} class="text-primary" />
+              {/if}
+            </div>
           {:else if column.id === "context_name"}
             <span class="text-text-muted text-sm font-mono">{cluster.context_name}</span>
           {:else if column.id === "description"}
