@@ -82,12 +82,12 @@
   <!-- Resize Handle (Always Shown) -->
   <div
     class="h-2 bg-bg-panel hover:bg-primary transition-colors flex items-center justify-center group"
-    style="cursor: ns-resize;"
+    style="cursor: ns-resize !important;"
     onmousedown={startResize}
     role="separator"
     aria-orientation="horizontal"
   >
-    <div class="w-12 h-1 bg-border rounded-full group-hover:bg-primary transition-colors"></div>
+    <div class="w-12 h-1 bg-border rounded-full group-hover:bg-primary transition-colors pointer-events-none"></div>
   </div>
 
   <!-- Tabs Bar (Always Shown) -->
