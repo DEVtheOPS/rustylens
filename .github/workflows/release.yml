@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -36,19 +36,19 @@ jobs:
           - platform: macos-latest
             name: macOS (Apple Silicon)
             rust_target: aarch64-apple-darwin
-            args: '--target aarch64-apple-darwin'
+            args: "--target aarch64-apple-darwin"
           - platform: macos-latest
             name: macOS (Intel)
             rust_target: x86_64-apple-darwin
-            args: '--target x86_64-apple-darwin'
+            args: "--target x86_64-apple-darwin"
           - platform: ubuntu-22.04
             name: Linux
-            rust_target: ''
-            args: ''
+            rust_target: ""
+            args: ""
           - platform: windows-latest
             name: Windows
-            rust_target: ''
-            args: ''
+            rust_target: ""
+            args: ""
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -61,8 +61,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -116,7 +116,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Generate update JSON
         run: node scripts/generate-update-json.js

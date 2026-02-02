@@ -13,11 +13,10 @@ pub struct DiscoveredContext {
     pub source_file: String,
 }
 
-
 /// Discover all contexts in a single kubeconfig file
 pub fn discover_contexts_in_file(path: &Path) -> Result<Vec<DiscoveredContext>, String> {
-    let kubeconfig = Kubeconfig::read_from(path)
-        .map_err(|e| format!("Failed to read kubeconfig: {}", e))?;
+    let kubeconfig =
+        Kubeconfig::read_from(path).map_err(|e| format!("Failed to read kubeconfig: {}", e))?;
 
     let mut contexts = Vec::new();
     let source_file = path.to_string_lossy().to_string();
@@ -50,8 +49,8 @@ pub fn discover_contexts_in_folder(path: &Path) -> Result<Vec<DiscoveredContext>
             return Ok(());
         }
 
-        let entries = std::fs::read_dir(dir)
-            .map_err(|e| format!("Failed to read directory: {}", e))?;
+        let entries =
+            std::fs::read_dir(dir).map_err(|e| format!("Failed to read directory: {}", e))?;
 
         for entry in entries {
             let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
@@ -109,7 +108,10 @@ pub fn extract_context(
         .find(|c| c.name == ctx.cluster)
         .ok_or_else(|| format!("Cluster '{}' not found", ctx.cluster))?;
 
-    let user_name = ctx.user.as_ref().ok_or_else(|| "Context has no user".to_string())?;
+    let user_name = ctx
+        .user
+        .as_ref()
+        .ok_or_else(|| "Context has no user".to_string())?;
     let user = kubeconfig
         .auth_infos
         .iter()
@@ -132,7 +134,7 @@ pub fn extract_context(
     // Serialize and write the kubeconfig
     let yaml_content = serde_yaml::to_string(&new_config)
         .map_err(|e| format!("Failed to serialize kubeconfig: {}", e))?;
-    
+
     std::fs::write(&config_path, yaml_content)
         .map_err(|e| format!("Failed to write kubeconfig: {}", e))?;
 
@@ -184,28 +186,32 @@ mod tests {
     use std::io::Write;
     use tempfile::TempDir;
 
-    fn create_test_kubeconfig(dir: &Path, filename: &str, contexts: &[(&str, &str, &str)]) -> PathBuf {
+    fn create_test_kubeconfig(
+        dir: &Path,
+        filename: &str,
+        contexts: &[(&str, &str, &str)],
+    ) -> PathBuf {
         let config_path = dir.join(filename);
         let mut file = fs::File::create(&config_path).unwrap();
-        
+
         writeln!(file, "apiVersion: v1").unwrap();
         writeln!(file, "kind: Config").unwrap();
         writeln!(file, "current-context: {}", contexts[0].0).unwrap();
         writeln!(file, "clusters:").unwrap();
-        
+
         for (_, cluster_name, _) in contexts {
             writeln!(file, "- name: {}", cluster_name).unwrap();
             writeln!(file, "  cluster:").unwrap();
             writeln!(file, "    server: https://example.com").unwrap();
         }
-        
+
         writeln!(file, "users:").unwrap();
         for (_, _, user_name) in contexts {
             writeln!(file, "- name: {}", user_name).unwrap();
             writeln!(file, "  user:").unwrap();
             writeln!(file, "    token: test-token").unwrap();
         }
-        
+
         writeln!(file, "contexts:").unwrap();
         for (context_name, cluster_name, user_name) in contexts {
             writeln!(file, "- name: {}", context_name).unwrap();
@@ -213,7 +219,7 @@ mod tests {
             writeln!(file, "    cluster: {}", cluster_name).unwrap();
             writeln!(file, "    user: {}", user_name).unwrap();
         }
-        
+
         config_path
     }
 
@@ -230,7 +236,7 @@ mod tests {
         );
 
         let contexts = discover_contexts_in_file(&config_path).unwrap();
-        
+
         assert_eq!(contexts.len(), 2);
         assert_eq!(contexts[0].context_name, "prod-context");
         assert_eq!(contexts[0].cluster_name, "prod-cluster");
@@ -241,31 +247,19 @@ mod tests {
     #[test]
     fn test_discover_contexts_in_folder() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         // Create multiple kubeconfig files
-        create_test_kubeconfig(
-            temp_dir.path(),
-            "config1",
-            &[("ctx1", "cluster1", "user1")],
-        );
-        
-        create_test_kubeconfig(
-            temp_dir.path(),
-            "config2",
-            &[("ctx2", "cluster2", "user2")],
-        );
-        
+        create_test_kubeconfig(temp_dir.path(), "config1", &[("ctx1", "cluster1", "user1")]);
+
+        create_test_kubeconfig(temp_dir.path(), "config2", &[("ctx2", "cluster2", "user2")]);
+
         // Create subdirectory with another config
         let subdir = temp_dir.path().join("subdir");
         fs::create_dir(&subdir).unwrap();
-        create_test_kubeconfig(
-            &subdir,
-            "config3",
-            &[("ctx3", "cluster3", "user3")],
-        );
+        create_test_kubeconfig(&subdir, "config3", &[("ctx3", "cluster3", "user3")]);
 
         let contexts = discover_contexts_in_folder(temp_dir.path()).unwrap();
-        
+
         assert_eq!(contexts.len(), 3);
         assert!(contexts.iter().any(|c| c.context_name == "ctx1"));
         assert!(contexts.iter().any(|c| c.context_name == "ctx2"));
@@ -287,12 +281,12 @@ mod tests {
         // Mock the kubeconfigs directory
         let kubeconfigs_dir = temp_dir.path().join("kubeconfigs");
         fs::create_dir(&kubeconfigs_dir).unwrap();
-        
+
         // Note: In actual test we'd need to mock get_kubeconfigs_dir()
         // For now, this tests the parsing logic
         let result = discover_contexts_in_file(&config_path);
         assert!(result.is_ok());
-        
+
         let contexts = result.unwrap();
         assert!(contexts.iter().any(|c| c.context_name == "prod-context"));
     }
@@ -301,10 +295,10 @@ mod tests {
     fn test_invalid_kubeconfig() {
         let temp_dir = TempDir::new().unwrap();
         let invalid_path = temp_dir.path().join("invalid.yaml");
-        
+
         let mut file = fs::File::create(&invalid_path).unwrap();
         writeln!(file, "invalid: yaml: content:").unwrap();
-        
+
         let result = discover_contexts_in_file(&invalid_path);
         assert!(result.is_err());
     }

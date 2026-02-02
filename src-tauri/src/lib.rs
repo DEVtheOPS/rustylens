@@ -1,9 +1,9 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-mod k8s;
-mod config;
 mod cluster_manager;
-mod import;
+mod config;
 mod image_utils;
+mod import;
+mod k8s;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -19,7 +19,9 @@ pub fn run() {
     let db_path = config::get_app_config_dir().join("clusters.db");
     let cluster_manager = cluster_manager::ClusterManager::new(db_path)
         .expect("Failed to initialize cluster manager");
-    let cluster_manager_state = cluster_manager::ClusterManagerState(std::sync::Arc::new(std::sync::Mutex::new(cluster_manager)));
+    let cluster_manager_state = cluster_manager::ClusterManagerState(std::sync::Arc::new(
+        std::sync::Mutex::new(cluster_manager),
+    ));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_websocket::init())
@@ -50,29 +52,51 @@ pub fn run() {
             k8s::cluster_get_metrics,
             k8s::cluster_get_events,
             // Workload commands
-            k8s::cluster_list_deployments, k8s::cluster_delete_deployment,
-            k8s::cluster_list_statefulsets, k8s::cluster_delete_statefulset,
-            k8s::cluster_list_daemonsets, k8s::cluster_delete_daemonset,
-            k8s::cluster_list_replicasets, k8s::cluster_delete_replicaset,
-            k8s::cluster_list_jobs, k8s::cluster_delete_job,
-            k8s::cluster_list_cronjobs, k8s::cluster_delete_cronjob,
+            k8s::cluster_list_deployments,
+            k8s::cluster_delete_deployment,
+            k8s::cluster_list_statefulsets,
+            k8s::cluster_delete_statefulset,
+            k8s::cluster_list_daemonsets,
+            k8s::cluster_delete_daemonset,
+            k8s::cluster_list_replicasets,
+            k8s::cluster_delete_replicaset,
+            k8s::cluster_list_jobs,
+            k8s::cluster_delete_job,
+            k8s::cluster_list_cronjobs,
+            k8s::cluster_delete_cronjob,
             // Config & Network & Storage
-            k8s::cluster_list_config_maps, k8s::cluster_delete_config_map,
-            k8s::cluster_list_secrets, k8s::cluster_delete_secret,
-            k8s::cluster_list_resource_quotas, k8s::cluster_delete_resource_quota,
-            k8s::cluster_list_limit_ranges, k8s::cluster_delete_limit_range,
-            k8s::cluster_list_hpa, k8s::cluster_delete_hpa,
-            k8s::cluster_list_pdb, k8s::cluster_delete_pdb,
-            k8s::cluster_list_services, k8s::cluster_delete_service,
-            k8s::cluster_list_endpoints, k8s::cluster_delete_endpoint,
-            k8s::cluster_list_ingresses, k8s::cluster_delete_ingress,
-            k8s::cluster_list_network_policies, k8s::cluster_delete_network_policy,
-            k8s::cluster_list_pvc, k8s::cluster_delete_pvc,
-            k8s::cluster_list_pv, k8s::cluster_delete_pv,
-            k8s::cluster_list_storage_classes, k8s::cluster_delete_storage_class,
-            k8s::cluster_list_service_accounts, k8s::cluster_delete_service_account,
-            k8s::cluster_list_roles, k8s::cluster_delete_role,
-            k8s::cluster_list_cluster_roles, k8s::cluster_delete_cluster_role,
+            k8s::cluster_list_config_maps,
+            k8s::cluster_delete_config_map,
+            k8s::cluster_list_secrets,
+            k8s::cluster_delete_secret,
+            k8s::cluster_list_resource_quotas,
+            k8s::cluster_delete_resource_quota,
+            k8s::cluster_list_limit_ranges,
+            k8s::cluster_delete_limit_range,
+            k8s::cluster_list_hpa,
+            k8s::cluster_delete_hpa,
+            k8s::cluster_list_pdb,
+            k8s::cluster_delete_pdb,
+            k8s::cluster_list_services,
+            k8s::cluster_delete_service,
+            k8s::cluster_list_endpoints,
+            k8s::cluster_delete_endpoint,
+            k8s::cluster_list_ingresses,
+            k8s::cluster_delete_ingress,
+            k8s::cluster_list_network_policies,
+            k8s::cluster_delete_network_policy,
+            k8s::cluster_list_pvc,
+            k8s::cluster_delete_pvc,
+            k8s::cluster_list_pv,
+            k8s::cluster_delete_pv,
+            k8s::cluster_list_storage_classes,
+            k8s::cluster_delete_storage_class,
+            k8s::cluster_list_service_accounts,
+            k8s::cluster_delete_service_account,
+            k8s::cluster_list_roles,
+            k8s::cluster_delete_role,
+            k8s::cluster_list_cluster_roles,
+            k8s::cluster_delete_cluster_role,
             // Cluster management commands
             cluster_manager::db_list_clusters,
             cluster_manager::db_get_cluster,

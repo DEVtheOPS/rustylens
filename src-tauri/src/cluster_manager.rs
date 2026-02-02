@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params, OptionalExtension};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -23,9 +23,9 @@ pub struct ClusterManager {
 
 impl ClusterManager {
     pub fn new(db_path: PathBuf) -> Result<Self, String> {
-        let conn = Connection::open(&db_path)
-            .map_err(|e| format!("Failed to open database: {}", e))?;
-        
+        let conn =
+            Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
+
         // Create clusters table if it doesn't exist
         conn.execute(
             "CREATE TABLE IF NOT EXISTS clusters (
@@ -62,10 +62,10 @@ impl ClusterManager {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        
-        let tags_json = serde_json::to_string(&tags)
-            .map_err(|e| format!("Failed to serialize tags: {}", e))?;
-        
+
+        let tags_json =
+            serde_json::to_string(&tags).map_err(|e| format!("Failed to serialize tags: {}", e))?;
+
         let config_path_str = config_path.to_string_lossy().to_string();
 
         let conn = self.conn.lock().unwrap();
@@ -161,42 +161,42 @@ impl ClusterManager {
         tags: Option<Vec<String>>,
     ) -> Result<(), String> {
         let conn = self.conn.lock().unwrap();
-        
+
         // Build dynamic UPDATE query based on provided fields
         let mut updates = Vec::new();
         let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
-        
+
         if let Some(name_val) = name {
             updates.push("name = ?");
             params.push(Box::new(name_val));
         }
-        
+
         if let Some(icon_val) = icon {
             updates.push("icon = ?");
             params.push(Box::new(icon_val));
         }
-        
+
         if let Some(desc_val) = description {
             updates.push("description = ?");
             params.push(Box::new(desc_val));
         }
-        
+
         if let Some(tags_val) = tags {
             let tags_json = serde_json::to_string(&tags_val)
                 .map_err(|e| format!("Failed to serialize tags: {}", e))?;
             updates.push("tags = ?");
             params.push(Box::new(tags_json));
         }
-        
+
         if updates.is_empty() {
             return Ok(());
         }
-        
+
         let query = format!("UPDATE clusters SET {} WHERE id = ?", updates.join(", "));
         params.push(Box::new(id.to_string()));
-        
+
         let param_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|b| b.as_ref()).collect();
-        
+
         conn.execute(&query, param_refs.as_slice())
             .map_err(|e| format!("Failed to update cluster: {}", e))?;
 
@@ -240,7 +240,10 @@ pub fn db_list_clusters(state: State<ClusterManagerState>) -> Result<Vec<Cluster
 }
 
 #[tauri::command]
-pub fn db_get_cluster(id: String, state: State<ClusterManagerState>) -> Result<Option<Cluster>, String> {
+pub fn db_get_cluster(
+    id: String,
+    state: State<ClusterManagerState>,
+) -> Result<Option<Cluster>, String> {
     let manager = state.0.lock().unwrap();
     manager.get_cluster(&id)
 }
@@ -259,7 +262,10 @@ pub fn db_update_cluster(
 }
 
 #[tauri::command]
-pub fn db_update_last_accessed(id: String, state: State<ClusterManagerState>) -> Result<(), String> {
+pub fn db_update_last_accessed(
+    id: String,
+    state: State<ClusterManagerState>,
+) -> Result<(), String> {
     let manager = state.0.lock().unwrap();
     manager.update_last_accessed(&id)
 }
@@ -267,7 +273,7 @@ pub fn db_update_last_accessed(id: String, state: State<ClusterManagerState>) ->
 #[tauri::command]
 pub fn db_delete_cluster(id: String, state: State<ClusterManagerState>) -> Result<(), String> {
     let manager = state.0.lock().unwrap();
-    
+
     // Get cluster to find config file path
     if let Some(cluster) = manager.get_cluster(&id)? {
         // Delete the config file
@@ -277,7 +283,7 @@ pub fn db_delete_cluster(id: String, state: State<ClusterManagerState>) -> Resul
                 .map_err(|e| format!("Failed to delete config file: {}", e))?;
         }
     }
-    
+
     // Delete from database
     manager.delete_cluster(&id)
 }
@@ -285,56 +291,55 @@ pub fn db_delete_cluster(id: String, state: State<ClusterManagerState>) -> Resul
 #[tauri::command]
 pub fn db_migrate_legacy_configs(state: State<ClusterManagerState>) -> Result<Vec<String>, String> {
     use crate::import::{discover_contexts_in_folder, extract_context};
-    
+
     let manager = state.0.lock().unwrap();
     let kubeconfigs_dir = crate::config::get_kubeconfigs_dir();
-    
+
     if !kubeconfigs_dir.exists() {
         return Ok(vec![]); // No legacy configs to migrate
     }
-    
+
     // Discover all contexts from the kubeconfigs directory
     let discovered = discover_contexts_in_folder(&kubeconfigs_dir)
         .map_err(|e| format!("Failed to discover legacy configs: {}", e))?;
-    
+
     let mut migrated = Vec::new();
     let conn = manager.conn.lock().unwrap();
-    
+
     for ctx in discovered {
         // Check if this context already exists in the database
-        let existing = conn.query_row(
-            "SELECT COUNT(*) FROM clusters WHERE context_name = ?1",
-            [&ctx.context_name],
-            |row| row.get::<_, i64>(0),
-        ).unwrap_or(0);
-        
+        let existing = conn
+            .query_row(
+                "SELECT COUNT(*) FROM clusters WHERE context_name = ?1",
+                [&ctx.context_name],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap_or(0);
+
         if existing > 0 {
             // Already migrated, skip
             continue;
         }
-        
+
         // Import this context
         let id = uuid::Uuid::new_v4().to_string();
-        
+
         // Extract this context to a new file
-        let config_path = match extract_context(
-            &PathBuf::from(&ctx.source_file),
-            &ctx.context_name,
-            &id,
-        ) {
-            Ok(path) => path,
-            Err(e) => {
-                eprintln!("Failed to extract context {}: {}", ctx.context_name, e);
-                continue;
-            }
-        };
-        
+        let config_path =
+            match extract_context(&PathBuf::from(&ctx.source_file), &ctx.context_name, &id) {
+                Ok(path) => path,
+                Err(e) => {
+                    eprintln!("Failed to extract context {}: {}", ctx.context_name, e);
+                    continue;
+                }
+            };
+
         // Add to database
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
-        
+
         conn.execute(
             "INSERT INTO clusters (id, name, context_name, config_path, created_at, last_accessed)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -346,10 +351,11 @@ pub fn db_migrate_legacy_configs(state: State<ClusterManagerState>) -> Result<Ve
                 now,
                 now,
             ),
-        ).map_err(|e| format!("Failed to insert cluster: {}", e))?;
-        
+        )
+        .map_err(|e| format!("Failed to insert cluster: {}", e))?;
+
         migrated.push(ctx.context_name);
     }
-    
+
     Ok(migrated)
 }

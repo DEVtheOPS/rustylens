@@ -78,12 +78,14 @@
 ### Setup
 
 1. **Install dependencies**:
+2.
    ```bash
    pnpm install
    cd src-tauri && cargo fetch
    ```
 
-2. **Run Development Server**:
+3. **Run Development Server**:
+
    ```bash
    pnpm tauri dev
    ```
@@ -109,12 +111,15 @@ Kore uses GitHub Actions for automated testing and releases.
 The Tauri updater requires signed binaries. To set this up:
 
 1. **Generate signing keys**:
+
    ```bash
    pnpm tauri signer generate -w ~/.tauri/kore.key
+
    ```
    This creates a private key (`kore.key`) and outputs the public key.
 
 2. **Update the public key** in `src-tauri/tauri.conf.json`:
+
    ```json
    "plugins": {
      "updater": {
@@ -129,6 +134,7 @@ The Tauri updater requires signed binaries. To set this up:
    - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Your key password (if set)
 
 4. **Set up the `gh-pages` branch** (orphan branch for the website):
+
    ```bash
    # Create orphan branch
    git checkout --orphan gh-pages
@@ -145,6 +151,7 @@ The Tauri updater requires signed binaries. To set this up:
    ```
 
    **Working on the site with a worktree**:
+
    ```bash
    git worktree add ../kore-pages gh-pages
    cd ../kore-pages
@@ -160,6 +167,7 @@ The Tauri updater requires signed binaries. To set this up:
 1. Update the version in `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`
 2. Commit the changes
 3. Create and push a tag:
+
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
@@ -199,10 +207,12 @@ See [tests/README.md](tests/README.md) for more details.
 ## Configuration
 
 Kore stores its configuration in:
+
 - **macOS/Linux**: `~/.kore/`
 - **Windows**: `C:\Users\<User>\.kore\`
 
 Storage structure:
+
 ```text
 ~/.kore/
 ├── clusters.db              # SQLite database (cluster metadata)
@@ -212,7 +222,3 @@ Storage structure:
 │   └── ...
 └── bookmarks.json           # Sidebar bookmarks
 ```
-
-## License
-
-GPL-3.0-or-later

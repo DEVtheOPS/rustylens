@@ -16,11 +16,11 @@ use k8s_openapi::api::storage::v1::StorageClass;
 use kube::config::Kubeconfig;
 use kube::runtime::watcher;
 use kube::{Api, Client, Config};
-use std::path::PathBuf;
-use tauri::{Emitter, State, Window};
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tauri::async_runtime::JoinHandle;
+use tauri::{Emitter, State, Window};
 
 pub struct WatcherState(pub Arc<Mutex<HashMap<String, JoinHandle<()>>>>);
 
@@ -95,7 +95,10 @@ async fn create_client_for_context(context_name: &str) -> Result<Client, String>
 }
 
 // NEW: Helper to create client from cluster ID
-async fn create_client_for_cluster(cluster_id: &str, state: &State<'_, ClusterManagerState>) -> Result<Client, String> {
+async fn create_client_for_cluster(
+    cluster_id: &str,
+    state: &State<'_, ClusterManagerState>,
+) -> Result<Client, String> {
     let manager = state.0.clone();
     let cluster_id = cluster_id.to_string();
 
@@ -104,11 +107,12 @@ async fn create_client_for_cluster(cluster_id: &str, state: &State<'_, ClusterMa
         // Get config path
         let config_path = {
             let manager = manager.lock().unwrap();
-            let cluster = manager.get_cluster(&cluster_id)?
+            let cluster = manager
+                .get_cluster(&cluster_id)?
                 .ok_or_else(|| format!("Cluster '{}' not found", cluster_id))?;
             PathBuf::from(&cluster.config_path)
         };
-        
+
         if !config_path.exists() {
             return Err(format!("Config file not found: {:?}", config_path));
         }
@@ -117,11 +121,15 @@ async fn create_client_for_cluster(cluster_id: &str, state: &State<'_, ClusterMa
             .map_err(|e| format!("Failed to read kubeconfig {:?}: {}", config_path, e))?;
 
         Ok(kubeconfig)
-    }).await.map_err(|e| e.to_string())??;
+    })
+    .await
+    .map_err(|e| e.to_string())??;
 
     // 2. Async Config Loading
     // The extracted config should have only one context, use current_context
-    let context_name = kubeconfig.current_context.as_ref()
+    let context_name = kubeconfig
+        .current_context
+        .as_ref()
         .ok_or_else(|| "No current context in kubeconfig".to_string())?;
 
     let options = kube::config::KubeConfigOptions {
@@ -908,7 +916,11 @@ pub async fn cluster_list_namespaces(
         .await
         .map_err(|e| format!("Failed to list namespaces: {}", e))?;
 
-    let namespaces: Vec<String> = list.items.iter().map(|ns| ns.metadata.name.clone().unwrap_or_default()).collect();
+    let namespaces: Vec<String> = list
+        .items
+        .iter()
+        .map(|ns| ns.metadata.name.clone().unwrap_or_default())
+        .collect();
 
     Ok(namespaces)
 }
@@ -920,7 +932,7 @@ pub async fn cluster_list_pods(
     state: State<'_, ClusterManagerState>,
 ) -> Result<Vec<PodSummary>, String> {
     let client = create_client_for_cluster(&cluster_id, &state).await?;
-    
+
     let pods: Api<Pod> = if namespace == "all" {
         Api::all(client)
     } else {
@@ -933,7 +945,11 @@ pub async fn cluster_list_pods(
         .await
         .map_err(|e| format!("Failed to list pods: {}", e))?;
 
-    let summaries = list.items.iter().map(|p| map_pod_to_summary(p.clone())).collect();
+    let summaries = list
+        .items
+        .iter()
+        .map(|p| map_pod_to_summary(p.clone()))
+        .collect();
     Ok(summaries)
 }
 
@@ -946,7 +962,7 @@ pub async fn cluster_delete_pod(
 ) -> Result<(), String> {
     let client = create_client_for_cluster(&cluster_id, &state).await?;
     let pods: Api<Pod> = Api::namespaced(client, &namespace);
-    
+
     pods.delete(&pod_name, &kube::api::DeleteParams::default())
         .await
         .map_err(|e| format!("Failed to delete pod: {}", e))?;
@@ -979,8 +995,16 @@ pub async fn cluster_get_pod_events(
         .items
         .iter()
         .map(|event| {
-            let event_type = event.type_.as_ref().unwrap_or(&"Unknown".to_string()).clone();
-            let reason = event.reason.as_ref().unwrap_or(&"Unknown".to_string()).clone();
+            let event_type = event
+                .type_
+                .as_ref()
+                .unwrap_or(&"Unknown".to_string())
+                .clone();
+            let reason = event
+                .reason
+                .as_ref()
+                .unwrap_or(&"Unknown".to_string())
+                .clone();
             let message = event.message.as_ref().unwrap_or(&"".to_string()).clone();
             let count = event.count.unwrap_or(1);
             let first_timestamp = event.first_timestamp.as_ref().map(|t| t.0.to_string());
@@ -1034,7 +1058,7 @@ pub async fn cluster_stream_container_logs(
     };
 
     let key = format!("logs:{}", stream_id);
-    
+
     // Abort existing if any
     {
         let mut watchers = watcher_state.0.lock().unwrap();
@@ -1071,7 +1095,7 @@ pub async fn cluster_stream_container_logs(
                 println!("Failed to open log stream: {}", e);
             }
         }
-        
+
         // Cleanup
         let mut watchers = watchers.lock().unwrap();
         watchers.remove(&key_clone);
@@ -1141,7 +1165,7 @@ pub async fn cluster_start_pod_watch(
                 }
             }
         }
-        
+
         // Cleanup
         let mut watchers = watchers.lock().unwrap();
         watchers.remove(&key_clone);
@@ -1193,12 +1217,19 @@ fn parse_cpu(q: &str) -> f64 {
 
 fn parse_memory(q: &str) -> f64 {
     let q = q.trim();
-    if let Some(val) = q.strip_suffix("Ki") { val.parse::<f64>().unwrap_or(0.0) * 1024.0 }
-    else if let Some(val) = q.strip_suffix("Mi") { val.parse::<f64>().unwrap_or(0.0) * 1024.0f64.powi(2) }
-    else if let Some(val) = q.strip_suffix("Gi") { val.parse::<f64>().unwrap_or(0.0) * 1024.0f64.powi(3) }
-    else if let Some(val) = q.strip_suffix("Ti") { val.parse::<f64>().unwrap_or(0.0) * 1024.0f64.powi(4) }
-    else if let Some(val) = q.strip_suffix("m") { val.parse::<f64>().unwrap_or(0.0) / 1000.0 }
-    else { q.parse::<f64>().unwrap_or(0.0) }
+    if let Some(val) = q.strip_suffix("Ki") {
+        val.parse::<f64>().unwrap_or(0.0) * 1024.0
+    } else if let Some(val) = q.strip_suffix("Mi") {
+        val.parse::<f64>().unwrap_or(0.0) * 1024.0f64.powi(2)
+    } else if let Some(val) = q.strip_suffix("Gi") {
+        val.parse::<f64>().unwrap_or(0.0) * 1024.0f64.powi(3)
+    } else if let Some(val) = q.strip_suffix("Ti") {
+        val.parse::<f64>().unwrap_or(0.0) * 1024.0f64.powi(4)
+    } else if let Some(val) = q.strip_suffix("m") {
+        val.parse::<f64>().unwrap_or(0.0) / 1000.0
+    } else {
+        q.parse::<f64>().unwrap_or(0.0)
+    }
 }
 
 #[tauri::command]
@@ -1207,12 +1238,18 @@ pub async fn cluster_get_metrics(
     state: State<'_, ClusterManagerState>,
 ) -> Result<ClusterMetrics, String> {
     let client = create_client_for_cluster(&cluster_id, &state).await?;
-    
+
     let nodes: Api<Node> = Api::all(client.clone());
     let pods: Api<Pod> = Api::all(client.clone());
 
-    let node_list = nodes.list(&Default::default()).await.map_err(|e| e.to_string())?;
-    let pod_list = pods.list(&Default::default()).await.map_err(|e| e.to_string())?;
+    let node_list = nodes
+        .list(&Default::default())
+        .await
+        .map_err(|e| e.to_string())?;
+    let pod_list = pods
+        .list(&Default::default())
+        .await
+        .map_err(|e| e.to_string())?;
 
     let mut metrics = ClusterMetrics::default();
 
@@ -1220,14 +1257,26 @@ pub async fn cluster_get_metrics(
     for node in node_list.items {
         if let Some(status) = node.status {
             if let Some(cap) = status.capacity {
-                if let Some(cpu) = cap.get("cpu") { metrics.cpu.capacity += parse_cpu(&cpu.0); }
-                if let Some(mem) = cap.get("memory") { metrics.memory.capacity += parse_memory(&mem.0); }
-                if let Some(p) = cap.get("pods") { metrics.pods.capacity += parse_cpu(&p.0); }
+                if let Some(cpu) = cap.get("cpu") {
+                    metrics.cpu.capacity += parse_cpu(&cpu.0);
+                }
+                if let Some(mem) = cap.get("memory") {
+                    metrics.memory.capacity += parse_memory(&mem.0);
+                }
+                if let Some(p) = cap.get("pods") {
+                    metrics.pods.capacity += parse_cpu(&p.0);
+                }
             }
             if let Some(alloc) = status.allocatable {
-                if let Some(cpu) = alloc.get("cpu") { metrics.cpu.allocatable += parse_cpu(&cpu.0); }
-                if let Some(mem) = alloc.get("memory") { metrics.memory.allocatable += parse_memory(&mem.0); }
-                if let Some(p) = alloc.get("pods") { metrics.pods.allocatable += parse_cpu(&p.0); }
+                if let Some(cpu) = alloc.get("cpu") {
+                    metrics.cpu.allocatable += parse_cpu(&cpu.0);
+                }
+                if let Some(mem) = alloc.get("memory") {
+                    metrics.memory.allocatable += parse_memory(&mem.0);
+                }
+                if let Some(p) = alloc.get("pods") {
+                    metrics.pods.allocatable += parse_cpu(&p.0);
+                }
             }
         }
     }
@@ -1237,21 +1286,35 @@ pub async fn cluster_get_metrics(
         // Skip finished pods
         if let Some(status) = &pod.status {
             if let Some(phase) = &status.phase {
-                if phase == "Succeeded" || phase == "Failed" { continue; }
+                if phase == "Succeeded" || phase == "Failed" {
+                    continue;
+                }
             }
         }
-        
+
         metrics.pods.usage += 1.0;
 
         if let Some(spec) = pod.spec {
             for container in spec.containers {
-                if let Some(reqs) = container.resources.as_ref().and_then(|r| r.requests.as_ref()) {
-                    if let Some(cpu) = reqs.get("cpu") { metrics.cpu.requests += parse_cpu(&cpu.0); }
-                    if let Some(mem) = reqs.get("memory") { metrics.memory.requests += parse_memory(&mem.0); }
+                if let Some(reqs) = container
+                    .resources
+                    .as_ref()
+                    .and_then(|r| r.requests.as_ref())
+                {
+                    if let Some(cpu) = reqs.get("cpu") {
+                        metrics.cpu.requests += parse_cpu(&cpu.0);
+                    }
+                    if let Some(mem) = reqs.get("memory") {
+                        metrics.memory.requests += parse_memory(&mem.0);
+                    }
                 }
                 if let Some(lims) = container.resources.as_ref().and_then(|r| r.limits.as_ref()) {
-                    if let Some(cpu) = lims.get("cpu") { metrics.cpu.limits += parse_cpu(&cpu.0); }
-                    if let Some(mem) = lims.get("memory") { metrics.memory.limits += parse_memory(&mem.0); }
+                    if let Some(cpu) = lims.get("cpu") {
+                        metrics.cpu.limits += parse_cpu(&cpu.0);
+                    }
+                    if let Some(mem) = lims.get("memory") {
+                        metrics.memory.limits += parse_memory(&mem.0);
+                    }
                 }
             }
         }
@@ -1267,7 +1330,7 @@ pub async fn cluster_get_events(
 ) -> Result<Vec<WarningEvent>, String> {
     let client = create_client_for_cluster(&cluster_id, &state).await?;
     let events: Api<Event> = Api::all(client);
-    
+
     let lp = kube::api::ListParams::default();
     let event_list = events.list(&lp).await.map_err(|e| e.to_string())?;
 
@@ -1278,9 +1341,11 @@ pub async fn cluster_get_events(
         if e.type_.as_deref() == Some("Warning") {
             let age = if let Some(last_ts) = &e.last_timestamp {
                 let last_ts_str = last_ts.0.to_string();
-                let last_ts_parsed = chrono::DateTime::parse_from_rfc3339(&last_ts_str).unwrap().with_timezone(&chrono::Utc);
+                let last_ts_parsed = chrono::DateTime::parse_from_rfc3339(&last_ts_str)
+                    .unwrap()
+                    .with_timezone(&chrono::Utc);
                 let duration = now.signed_duration_since(last_ts_parsed);
-                 if duration.num_days() > 0 {
+                if duration.num_days() > 0 {
                     format!("{}d", duration.num_days())
                 } else if duration.num_hours() > 0 {
                     format!("{}h", duration.num_hours())
@@ -1295,7 +1360,11 @@ pub async fn cluster_get_events(
 
             warnings.push(WarningEvent {
                 message: e.message.unwrap_or_default(),
-                object: format!("{}/{}", e.involved_object.kind.unwrap_or_default(), e.involved_object.name.unwrap_or_default()),
+                object: format!(
+                    "{}/{}",
+                    e.involved_object.kind.unwrap_or_default(),
+                    e.involved_object.name.unwrap_or_default()
+                ),
                 type_: e.type_.unwrap_or_default(),
                 age,
                 count: e.count.unwrap_or(1),
@@ -1304,9 +1373,9 @@ pub async fn cluster_get_events(
     }
 
     // Limit to 50 most recent warnings
-    warnings.reverse(); 
+    warnings.reverse();
     warnings.truncate(50);
-    
+
     Ok(warnings)
 }
 
@@ -1324,14 +1393,16 @@ pub struct WorkloadSummary {
     pub created_at: i64,
 }
 
-fn calculate_age(timestamp: Option<&k8s_openapi::apimachinery::pkg::apis::meta::v1::Time>) -> String {
+fn calculate_age(
+    timestamp: Option<&k8s_openapi::apimachinery::pkg::apis::meta::v1::Time>,
+) -> String {
     if let Some(ts) = timestamp {
         let now = chrono::Utc::now();
         // Convert k8s Time (jiff/chrono wrapper) to chrono DateTime
         // Using string parsing as reliable fallback
         if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&ts.0.to_string()) {
-             let duration = now.signed_duration_since(dt.with_timezone(&chrono::Utc));
-             if duration.num_days() > 0 {
+            let duration = now.signed_duration_since(dt.with_timezone(&chrono::Utc));
+            if duration.num_days() > 0 {
                 format!("{}d", duration.num_days())
             } else if duration.num_hours() > 0 {
                 format!("{}h", duration.num_hours())
@@ -1361,13 +1432,17 @@ fn map_deployment_to_summary(d: Deployment) -> WorkloadSummary {
     let meta = d.metadata;
     let spec = d.spec.unwrap_or_default();
     let status = d.status.unwrap_or_default();
-    
+
     let _replicas = status.replicas.unwrap_or(0);
     let ready = status.ready_replicas.unwrap_or(0);
     let status_str = format!("{}/{}", ready, spec.replicas.unwrap_or(1));
 
     let images = if let Some(template) = spec.template.spec {
-        template.containers.into_iter().map(|c| c.image.unwrap_or_default()).collect()
+        template
+            .containers
+            .into_iter()
+            .map(|c| c.image.unwrap_or_default())
+            .collect()
     } else {
         vec![]
     };
@@ -1388,13 +1463,17 @@ fn map_statefulset_to_summary(s: StatefulSet) -> WorkloadSummary {
     let meta = s.metadata;
     let spec = s.spec.unwrap_or_default();
     let status = s.status.unwrap_or_default();
-    
+
     let ready = status.ready_replicas.unwrap_or(0);
     let replicas = spec.replicas.unwrap_or(1);
     let status_str = format!("{}/{}", ready, replicas);
 
     let images = if let Some(template) = spec.template.spec {
-        template.containers.into_iter().map(|c| c.image.unwrap_or_default()).collect()
+        template
+            .containers
+            .into_iter()
+            .map(|c| c.image.unwrap_or_default())
+            .collect()
     } else {
         vec![]
     };
@@ -1415,13 +1494,17 @@ fn map_daemonset_to_summary(d: DaemonSet) -> WorkloadSummary {
     let meta = d.metadata;
     let spec = d.spec.unwrap_or_default();
     let status = d.status.unwrap_or_default();
-    
+
     let desired = status.desired_number_scheduled;
     let ready = status.number_ready;
     let status_str = format!("{}/{}", ready, desired);
 
     let images = if let Some(template) = spec.template.spec {
-        template.containers.into_iter().map(|c| c.image.unwrap_or_default()).collect()
+        template
+            .containers
+            .into_iter()
+            .map(|c| c.image.unwrap_or_default())
+            .collect()
     } else {
         vec![]
     };
@@ -1442,15 +1525,21 @@ fn map_replicaset_to_summary(r: ReplicaSet) -> WorkloadSummary {
     let meta = r.metadata;
     let spec = r.spec.unwrap_or_default();
     let status = r.status.unwrap_or_default();
-    
+
     let ready = status.ready_replicas.unwrap_or(0);
     let replicas = spec.replicas.unwrap_or(1);
     let status_str = format!("{}/{}", ready, replicas);
 
     let images = if let Some(template) = spec.template {
         if let Some(tspec) = template.spec {
-            tspec.containers.into_iter().map(|c| c.image.unwrap_or_default()).collect()
-        } else { vec![] }
+            tspec
+                .containers
+                .into_iter()
+                .map(|c| c.image.unwrap_or_default())
+                .collect()
+        } else {
+            vec![]
+        }
     } else {
         vec![]
     };
@@ -1471,13 +1560,17 @@ fn map_job_to_summary(j: Job) -> WorkloadSummary {
     let meta = j.metadata;
     let spec = j.spec.unwrap_or_default();
     let status = j.status.unwrap_or_default();
-    
+
     let succeeded = status.succeeded.unwrap_or(0);
     let completions = spec.completions.unwrap_or(1);
     let status_str = format!("{}/{}", succeeded, completions);
 
     let images = if let Some(template) = spec.template.spec {
-        template.containers.into_iter().map(|c| c.image.unwrap_or_default()).collect()
+        template
+            .containers
+            .into_iter()
+            .map(|c| c.image.unwrap_or_default())
+            .collect()
     } else {
         vec![]
     };
@@ -1498,14 +1591,20 @@ fn map_cronjob_to_summary(c: CronJob) -> WorkloadSummary {
     let meta = c.metadata;
     let spec = c.spec.unwrap_or_default();
     let status = c.status.unwrap_or_default();
-    
+
     let active = status.active.map(|a| a.len()).unwrap_or(0);
     let status_str = if active > 0 { "Active" } else { "Suspended" }; // Simplified
 
     let images = if let Some(job_template) = spec.job_template.spec {
         if let Some(template) = job_template.template.spec {
-            template.containers.into_iter().map(|c| c.image.unwrap_or_default()).collect()
-        } else { vec![] }
+            template
+                .containers
+                .into_iter()
+                .map(|c| c.image.unwrap_or_default())
+                .collect()
+        } else {
+            vec![]
+        }
     } else {
         vec![]
     };
@@ -1537,7 +1636,10 @@ macro_rules! impl_workload_commands {
                 Api::all(client)
             };
 
-            let list = api.list(&Default::default()).await.map_err(|e| e.to_string())?;
+            let list = api
+                .list(&Default::default())
+                .await
+                .map_err(|e| e.to_string())?;
             Ok(list.items.into_iter().map($map_fn).collect())
         }
 
@@ -1550,18 +1652,50 @@ macro_rules! impl_workload_commands {
         ) -> Result<(), String> {
             let client = create_client_for_cluster(&cluster_id, &state).await?;
             let api: Api<$resource> = Api::namespaced(client, &namespace);
-            api.delete(&name, &Default::default()).await.map_err(|e| e.to_string())?;
+            api.delete(&name, &Default::default())
+                .await
+                .map_err(|e| e.to_string())?;
             Ok(())
         }
     };
 }
 
-impl_workload_commands!(Deployment, cluster_list_deployments, cluster_delete_deployment, map_deployment_to_summary);
-impl_workload_commands!(StatefulSet, cluster_list_statefulsets, cluster_delete_statefulset, map_statefulset_to_summary);
-impl_workload_commands!(DaemonSet, cluster_list_daemonsets, cluster_delete_daemonset, map_daemonset_to_summary);
-impl_workload_commands!(ReplicaSet, cluster_list_replicasets, cluster_delete_replicaset, map_replicaset_to_summary);
-impl_workload_commands!(Job, cluster_list_jobs, cluster_delete_job, map_job_to_summary);
-impl_workload_commands!(CronJob, cluster_list_cronjobs, cluster_delete_cronjob, map_cronjob_to_summary);
+impl_workload_commands!(
+    Deployment,
+    cluster_list_deployments,
+    cluster_delete_deployment,
+    map_deployment_to_summary
+);
+impl_workload_commands!(
+    StatefulSet,
+    cluster_list_statefulsets,
+    cluster_delete_statefulset,
+    map_statefulset_to_summary
+);
+impl_workload_commands!(
+    DaemonSet,
+    cluster_list_daemonsets,
+    cluster_delete_daemonset,
+    map_daemonset_to_summary
+);
+impl_workload_commands!(
+    ReplicaSet,
+    cluster_list_replicasets,
+    cluster_delete_replicaset,
+    map_replicaset_to_summary
+);
+impl_workload_commands!(
+    Job,
+    cluster_list_jobs,
+    cluster_delete_job,
+    map_job_to_summary
+);
+impl_workload_commands!(
+    CronJob,
+    cluster_list_cronjobs,
+    cluster_delete_cronjob,
+    map_cronjob_to_summary
+);
 
 // --- Additional Resources ---
 
@@ -1577,7 +1711,10 @@ macro_rules! impl_cluster_resource_commands {
             let client = create_client_for_cluster(&cluster_id, &state).await?;
             let api: Api<$resource> = Api::all(client);
 
-            let list = api.list(&Default::default()).await.map_err(|e| e.to_string())?;
+            let list = api
+                .list(&Default::default())
+                .await
+                .map_err(|e| e.to_string())?;
             Ok(list.items.into_iter().map($map_fn).collect())
         }
 
@@ -1590,7 +1727,9 @@ macro_rules! impl_cluster_resource_commands {
         ) -> Result<(), String> {
             let client = create_client_for_cluster(&cluster_id, &state).await?;
             let api: Api<$resource> = Api::all(client);
-            api.delete(&name, &Default::default()).await.map_err(|e| e.to_string())?;
+            api.delete(&name, &Default::default())
+                .await
+                .map_err(|e| e.to_string())?;
             Ok(())
         }
     };
@@ -1600,7 +1739,7 @@ macro_rules! impl_cluster_resource_commands {
 fn map_configmap_to_summary(c: ConfigMap) -> WorkloadSummary {
     let meta = c.metadata;
     let count = c.data.map(|d| d.len()).unwrap_or(0) + c.binary_data.map(|d| d.len()).unwrap_or(0);
-    
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1617,7 +1756,7 @@ fn map_configmap_to_summary(c: ConfigMap) -> WorkloadSummary {
 fn map_secret_to_summary(s: Secret) -> WorkloadSummary {
     let meta = s.metadata;
     let count = s.data.map(|d| d.len()).unwrap_or(0) + s.string_data.map(|d| d.len()).unwrap_or(0);
-    
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1625,7 +1764,11 @@ fn map_secret_to_summary(s: Secret) -> WorkloadSummary {
         age: calculate_age(meta.creation_timestamp.as_ref()),
         created_at: get_created_at(meta.creation_timestamp.as_ref()),
         labels: meta.labels.unwrap_or_default(),
-        status: format!("{} ({} items)", s.type_.unwrap_or_else(|| "Opaque".to_string()), count),
+        status: format!(
+            "{} ({} items)",
+            s.type_.unwrap_or_else(|| "Opaque".to_string()),
+            count
+        ),
         images: vec![],
     }
 }
@@ -1633,7 +1776,7 @@ fn map_secret_to_summary(s: Secret) -> WorkloadSummary {
 // Resource Quotas
 fn map_resource_quota_to_summary(r: ResourceQuota) -> WorkloadSummary {
     let meta = r.metadata;
-    
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1641,7 +1784,7 @@ fn map_resource_quota_to_summary(r: ResourceQuota) -> WorkloadSummary {
         age: calculate_age(meta.creation_timestamp.as_ref()),
         created_at: get_created_at(meta.creation_timestamp.as_ref()),
         labels: meta.labels.unwrap_or_default(),
-        status: "Active".to_string(), 
+        status: "Active".to_string(),
         images: vec![],
     }
 }
@@ -1666,12 +1809,12 @@ fn map_hpa_to_summary(h: HorizontalPodAutoscaler) -> WorkloadSummary {
     let meta = h.metadata;
     let spec = h.spec.unwrap_or_default();
     let status = h.status.unwrap_or_default();
-    
+
     let current = status.current_replicas;
     let desired = status.desired_replicas;
     let min = spec.min_replicas.unwrap_or(1);
     let max = spec.max_replicas;
-    
+
     let status_str = format!("{}/{} (min: {}, max: {})", current, desired, min, max);
 
     WorkloadSummary {
@@ -1691,7 +1834,7 @@ fn map_pdb_to_summary(p: PodDisruptionBudget) -> WorkloadSummary {
     let meta = p.metadata;
     let status = p.status.unwrap_or_default();
     let allowed = status.disruptions_allowed;
-    
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1708,11 +1851,17 @@ fn map_pdb_to_summary(p: PodDisruptionBudget) -> WorkloadSummary {
 fn map_service_to_summary(s: Service) -> WorkloadSummary {
     let meta = s.metadata;
     let spec = s.spec.unwrap_or_default();
-    
+
     let type_ = spec.type_.unwrap_or_else(|| "ClusterIP".to_string());
     let cluster_ip = spec.cluster_ip.unwrap_or_else(|| "-".to_string());
-    let ports = spec.ports.unwrap_or_default().iter().map(|p| format!("{}", p.port)).collect::<Vec<_>>().join(",");
-    
+    let ports = spec
+        .ports
+        .unwrap_or_default()
+        .iter()
+        .map(|p| format!("{}", p.port))
+        .collect::<Vec<_>>()
+        .join(",");
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1728,7 +1877,14 @@ fn map_service_to_summary(s: Service) -> WorkloadSummary {
 // Endpoints
 fn map_endpoints_to_summary(e: Endpoints) -> WorkloadSummary {
     let meta = e.metadata;
-    let count = e.subsets.map(|s| s.iter().map(|ss| ss.addresses.as_ref().map(|a| a.len()).unwrap_or(0)).sum::<usize>()).unwrap_or(0);
+    let count = e
+        .subsets
+        .map(|s| {
+            s.iter()
+                .map(|ss| ss.addresses.as_ref().map(|a| a.len()).unwrap_or(0))
+                .sum::<usize>()
+        })
+        .unwrap_or(0);
 
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
@@ -1745,9 +1901,17 @@ fn map_endpoints_to_summary(e: Endpoints) -> WorkloadSummary {
 // Ingresses
 fn map_ingress_to_summary(i: Ingress) -> WorkloadSummary {
     let meta = i.metadata;
-    let lbs = i.status.and_then(|s| s.load_balancer).and_then(|lb| lb.ingress).map(|ing| 
-        ing.iter().map(|ip| ip.ip.clone().or(ip.hostname.clone()).unwrap_or_default()).collect::<Vec<_>>().join(",")
-    ).unwrap_or_default();
+    let lbs = i
+        .status
+        .and_then(|s| s.load_balancer)
+        .and_then(|lb| lb.ingress)
+        .map(|ing| {
+            ing.iter()
+                .map(|ip| ip.ip.clone().or(ip.hostname.clone()).unwrap_or_default())
+                .collect::<Vec<_>>()
+                .join(",")
+        })
+        .unwrap_or_default();
 
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
@@ -1781,7 +1945,10 @@ fn map_pvc_to_summary(p: PersistentVolumeClaim) -> WorkloadSummary {
     let meta = p.metadata;
     let status = p.status.unwrap_or_default();
     let phase = status.phase.unwrap_or_default();
-    let capacity = status.capacity.and_then(|c| c.get("storage").map(|q| q.0.clone())).unwrap_or_default();
+    let capacity = status
+        .capacity
+        .and_then(|c| c.get("storage").map(|q| q.0.clone()))
+        .unwrap_or_default();
 
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
@@ -1801,7 +1968,10 @@ fn map_pv_to_summary(p: PersistentVolume) -> WorkloadSummary {
     let status = p.status.unwrap_or_default();
     let phase = status.phase.unwrap_or_default();
     let spec = p.spec.unwrap_or_default();
-    let capacity = spec.capacity.and_then(|c| c.get("storage").map(|q| q.0.clone())).unwrap_or_default();
+    let capacity = spec
+        .capacity
+        .and_then(|c| c.get("storage").map(|q| q.0.clone()))
+        .unwrap_or_default();
 
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
@@ -1819,7 +1989,7 @@ fn map_pv_to_summary(p: PersistentVolume) -> WorkloadSummary {
 fn map_storage_class_to_summary(s: StorageClass) -> WorkloadSummary {
     let meta = s.metadata;
     let provisioner = s.provisioner;
-    
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1835,7 +2005,7 @@ fn map_storage_class_to_summary(s: StorageClass) -> WorkloadSummary {
 // Service Accounts
 fn map_service_account_to_summary(s: ServiceAccount) -> WorkloadSummary {
     let meta = s.metadata;
-    
+
     WorkloadSummary {
         id: meta.uid.clone().unwrap_or_default(),
         name: meta.name.clone().unwrap_or_default(),
@@ -1878,21 +2048,101 @@ fn map_cluster_role_to_summary(r: ClusterRole) -> WorkloadSummary {
     }
 }
 
-impl_workload_commands!(ConfigMap, cluster_list_config_maps, cluster_delete_config_map, map_configmap_to_summary);
-impl_workload_commands!(Secret, cluster_list_secrets, cluster_delete_secret, map_secret_to_summary);
-impl_workload_commands!(ResourceQuota, cluster_list_resource_quotas, cluster_delete_resource_quota, map_resource_quota_to_summary);
-impl_workload_commands!(LimitRange, cluster_list_limit_ranges, cluster_delete_limit_range, map_limit_range_to_summary);
-impl_workload_commands!(HorizontalPodAutoscaler, cluster_list_hpa, cluster_delete_hpa, map_hpa_to_summary);
-impl_workload_commands!(PodDisruptionBudget, cluster_list_pdb, cluster_delete_pdb, map_pdb_to_summary);
-impl_workload_commands!(Service, cluster_list_services, cluster_delete_service, map_service_to_summary);
-impl_workload_commands!(Endpoints, cluster_list_endpoints, cluster_delete_endpoint, map_endpoints_to_summary);
-impl_workload_commands!(Ingress, cluster_list_ingresses, cluster_delete_ingress, map_ingress_to_summary);
-impl_workload_commands!(NetworkPolicy, cluster_list_network_policies, cluster_delete_network_policy, map_network_policy_to_summary);
-impl_workload_commands!(PersistentVolumeClaim, cluster_list_pvc, cluster_delete_pvc, map_pvc_to_summary);
-impl_workload_commands!(ServiceAccount, cluster_list_service_accounts, cluster_delete_service_account, map_service_account_to_summary);
-impl_workload_commands!(Role, cluster_list_roles, cluster_delete_role, map_role_to_summary);
+impl_workload_commands!(
+    ConfigMap,
+    cluster_list_config_maps,
+    cluster_delete_config_map,
+    map_configmap_to_summary
+);
+impl_workload_commands!(
+    Secret,
+    cluster_list_secrets,
+    cluster_delete_secret,
+    map_secret_to_summary
+);
+impl_workload_commands!(
+    ResourceQuota,
+    cluster_list_resource_quotas,
+    cluster_delete_resource_quota,
+    map_resource_quota_to_summary
+);
+impl_workload_commands!(
+    LimitRange,
+    cluster_list_limit_ranges,
+    cluster_delete_limit_range,
+    map_limit_range_to_summary
+);
+impl_workload_commands!(
+    HorizontalPodAutoscaler,
+    cluster_list_hpa,
+    cluster_delete_hpa,
+    map_hpa_to_summary
+);
+impl_workload_commands!(
+    PodDisruptionBudget,
+    cluster_list_pdb,
+    cluster_delete_pdb,
+    map_pdb_to_summary
+);
+impl_workload_commands!(
+    Service,
+    cluster_list_services,
+    cluster_delete_service,
+    map_service_to_summary
+);
+impl_workload_commands!(
+    Endpoints,
+    cluster_list_endpoints,
+    cluster_delete_endpoint,
+    map_endpoints_to_summary
+);
+impl_workload_commands!(
+    Ingress,
+    cluster_list_ingresses,
+    cluster_delete_ingress,
+    map_ingress_to_summary
+);
+impl_workload_commands!(
+    NetworkPolicy,
+    cluster_list_network_policies,
+    cluster_delete_network_policy,
+    map_network_policy_to_summary
+);
+impl_workload_commands!(
+    PersistentVolumeClaim,
+    cluster_list_pvc,
+    cluster_delete_pvc,
+    map_pvc_to_summary
+);
+impl_workload_commands!(
+    ServiceAccount,
+    cluster_list_service_accounts,
+    cluster_delete_service_account,
+    map_service_account_to_summary
+);
+impl_workload_commands!(
+    Role,
+    cluster_list_roles,
+    cluster_delete_role,
+    map_role_to_summary
+);
 
 // Cluster Scoped
-impl_cluster_resource_commands!(PersistentVolume, cluster_list_pv, cluster_delete_pv, map_pv_to_summary);
-impl_cluster_resource_commands!(StorageClass, cluster_list_storage_classes, cluster_delete_storage_class, map_storage_class_to_summary);
-impl_cluster_resource_commands!(ClusterRole, cluster_list_cluster_roles, cluster_delete_cluster_role, map_cluster_role_to_summary);
+impl_cluster_resource_commands!(
+    PersistentVolume,
+    cluster_list_pv,
+    cluster_delete_pv,
+    map_pv_to_summary
+);
+impl_cluster_resource_commands!(
+    StorageClass,
+    cluster_list_storage_classes,
+    cluster_delete_storage_class,
+    map_storage_class_to_summary
+);
+impl_cluster_resource_commands!(
+    ClusterRole,
+    cluster_list_cluster_roles,
+    cluster_delete_cluster_role,
+    map_cluster_role_to_summary
+);
