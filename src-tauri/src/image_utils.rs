@@ -1,4 +1,4 @@
-use image::{ImageReader, ImageFormat, DynamicImage, GenericImageView};
+use image::{DynamicImage, GenericImageView, ImageFormat, ImageReader};
 use std::io::Cursor;
 use std::path::Path;
 
@@ -66,19 +66,17 @@ pub fn process_icon_file(path: String) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use tempfile::TempDir;
 
     #[test]
     fn test_resize_large_image() {
         // Create a large test image (1024x768)
         let img = DynamicImage::new_rgb8(1024, 768);
         let resized = resize_if_needed(img);
-        
+
         let (width, height) = resized.dimensions();
         assert!(width <= MAX_ICON_SIZE);
         assert!(height <= MAX_ICON_SIZE);
-        
+
         // Check aspect ratio is maintained
         let expected_height = (768.0 * (MAX_ICON_SIZE as f32 / 1024.0)) as u32;
         assert_eq!(height, expected_height);
@@ -89,7 +87,7 @@ mod tests {
         // Create a small test image (256x256)
         let img = DynamicImage::new_rgb8(256, 256);
         let resized = resize_if_needed(img);
-        
+
         let (width, height) = resized.dimensions();
         assert_eq!(width, 256);
         assert_eq!(height, 256);
@@ -99,15 +97,17 @@ mod tests {
     fn test_encode_as_png_base64() {
         let img = DynamicImage::new_rgb8(100, 100);
         let result = encode_as_png_base64(&img);
-        
+
         assert!(result.is_ok());
         let base64_str = result.unwrap();
-        
+
         // Base64 string should not be empty
         assert!(!base64_str.is_empty());
-        
+
         // Should be valid base64
         use base64::Engine;
-        assert!(base64::engine::general_purpose::STANDARD.decode(&base64_str).is_ok());
+        assert!(base64::engine::general_purpose::STANDARD
+            .decode(&base64_str)
+            .is_ok());
     }
 }

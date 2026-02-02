@@ -36,7 +36,7 @@
 
 ## Project Structure
 
-```
+```text
 ├── src/                         # Svelte Frontend
 │   ├── lib/
 │   │   ├── components/
@@ -94,6 +94,79 @@
 pnpm tauri build
 ```
 
+## CI/CD & Releases
+
+Kore uses GitHub Actions for automated testing and releases.
+
+### Workflows
+
+- **`test.yml`**: Runs on PRs and pushes to `main`. Performs linting, type checking, and tests on all platforms.
+- **`release.yml`**: Triggered on tag pushes (`v*`). Builds signed binaries for all platforms and creates a GitHub release.
+- **`pages.yml`**: Deploys the landing page and update manifest to GitHub Pages.
+
+### Setting Up Auto-Updates
+
+The Tauri updater requires signed binaries. To set this up:
+
+1. **Generate signing keys**:
+   ```bash
+   pnpm tauri signer generate -w ~/.tauri/kore.key
+   ```
+   This creates a private key (`kore.key`) and outputs the public key.
+
+2. **Update the public key** in `src-tauri/tauri.conf.json`:
+   ```json
+   "plugins": {
+     "updater": {
+       "pubkey": "YOUR_PUBLIC_KEY_HERE",
+       ...
+     }
+   }
+   ```
+
+3. **Add GitHub secrets** (Settings → Secrets → Actions):
+   - `TAURI_SIGNING_PRIVATE_KEY`: Contents of `~/.tauri/kore.key`
+   - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Your key password (if set)
+
+4. **Set up the `gh-pages` branch** (orphan branch for the website):
+   ```bash
+   # Create orphan branch
+   git checkout --orphan gh-pages
+   git rm -rf .
+
+   # Add your landing page (index.html, etc.)
+   echo '<!DOCTYPE html><html>...</html>' > index.html
+   git add index.html
+   git commit -m "Initial gh-pages"
+   git push origin gh-pages
+
+   # Return to main
+   git checkout main
+   ```
+
+   **Working on the site with a worktree**:
+   ```bash
+   git worktree add ../kore-pages gh-pages
+   cd ../kore-pages
+   # Edit site files, commit, push
+   ```
+
+5. **Enable GitHub Pages** (Settings → Pages):
+   - Source: Deploy from a branch
+   - Branch: `gh-pages` / `/ (root)`
+
+### Creating a Release
+
+1. Update the version in `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`
+2. Commit the changes
+3. Create and push a tag:
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+The release workflow will automatically build all platforms and publish to GitHub Releases and Pages.
+
 ### Running Tests & Coverage
 
 **Frontend (Svelte/TS)**
@@ -130,7 +203,7 @@ Kore stores its configuration in:
 - **Windows**: `C:\Users\<User>\.kore\`
 
 Storage structure:
-```
+```text
 ~/.kore/
 ├── clusters.db              # SQLite database (cluster metadata)
 ├── kubeconfigs/             # Extracted single-context configs

@@ -35,18 +35,22 @@
 
 {#if open}
   <!-- Backdrop -->
-  <div 
-    class="fixed inset-0 bg-black/20 z-40" 
+  <div
+    class="fixed inset-0 bg-black/20 z-40"
     transition:fade={{ duration: 200 }}
     onclick={close}
+    onkeydown={(e) => e.key === 'Escape' && close()}
     role="button"
     tabindex="-1"
   ></div>
 
   <!-- Panel (Right Side standard for details) -->
-  <div 
+  <div
     class="fixed top-0 right-0 h-full bg-bg-card border-l border-border-main shadow-xl z-50 flex flex-col {width}"
     transition:fly={{ x: 400, duration: 300 }}
+    role="dialog"
+    aria-modal="true"
+    aria-label={title}
   >
     <div class="flex items-center justify-between p-4 border-b border-border-subtle">
       <h2 class="text-lg font-bold">{title}</h2>

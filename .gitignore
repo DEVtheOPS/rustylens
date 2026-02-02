@@ -11,3 +11,7 @@ vite.config.ts.timestamp-*
 coverage/
 playwright-report/
 test-results/
+
+# CI generated files
+/update.json
+/gh-pages-update/

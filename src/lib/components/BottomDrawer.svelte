@@ -56,11 +56,13 @@
     isResizing = false;
   }
 
-  function handleTabBarClick(e: MouseEvent) {
+  function handleTabBarClick(e?: MouseEvent | KeyboardEvent) {
     // Don't toggle if clicking on a tab or the minimize button
-    const target = e.target as HTMLElement;
-    if (target.closest('[role="tab"]') || target.closest("button")) {
-      return;
+    if (e?.target) {
+      const target = e.target as HTMLElement;
+      if (target.closest('[role="tab"]') || target.closest("button")) {
+        return;
+      }
     }
 
     bottomDrawerStore.toggle();
@@ -80,12 +82,14 @@
 
 <div class="flex flex-col bg-bg-main">
   <!-- Resize Handle (Always Shown) -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="h-2 bg-bg-sidebar transition-colors flex items-center justify-center group"
     style="cursor: ns-resize !important;"
     onmousedown={startResize}
     role="separator"
     aria-orientation="horizontal"
+    aria-label="Resize drawer"
   >
     <hr class="hover:bg-primary" />
   </div>
@@ -94,6 +98,9 @@
   <div
     class="flex items-center justify-between bg-bg-sidebar px-2 cursor-pointer hover:bg-bg-main/50 transition-colors"
     onclick={handleTabBarClick}
+    onkeydown={(e) => e.key === 'Enter' && handleTabBarClick(e)}
+    role="button"
+    tabindex="0"
   >
     <div class="flex items-center gap-1 bg-bg-sidebar overflow-x-auto flex-1">
       {#if bottomDrawerStore.tabs.length === 0}
@@ -106,6 +113,7 @@
               ? 'bg-bg-main'
               : ''}"
             onclick={() => bottomDrawerStore.setActiveTab(tab.id)}
+            onkeydown={(e) => e.key === 'Enter' && bottomDrawerStore.setActiveTab(tab.id)}
             role="tab"
             tabindex="0"
           >

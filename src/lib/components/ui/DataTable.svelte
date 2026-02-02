@@ -82,25 +82,31 @@
   const isIndeterminate = $derived(selectedIds.size > 0 && selectedIds.size < data.length);
   const showSelection = $derived(batchActions && batchActions.length > 0);
 
-  // Initialize from storage
-  if (storageKey && typeof localStorage !== "undefined") {
-    const saved = localStorage.getItem(`datatable-${storageKey}`);
-    if (saved) {
-      try {
-        const savedCols = JSON.parse(saved);
-        // Merge saved visibility with current columns
-        columns = columns.map((c) => {
-          const savedCol = savedCols.find((sc: any) => sc.id === c.id);
-          if (savedCol && typeof savedCol.visible !== "undefined") {
-            return { ...c, visible: savedCol.visible };
-          }
-          return c;
-        });
-      } catch (e) {
-        console.error("Failed to load table settings", e);
+  // Initialize from storage - runs once on mount
+  let initialized = false;
+  $effect(() => {
+    if (initialized) return;
+    initialized = true;
+
+    if (storageKey && typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem(`datatable-${storageKey}`);
+      if (saved) {
+        try {
+          const savedCols = JSON.parse(saved);
+          // Merge saved visibility with current columns
+          columns = columns.map((c) => {
+            const savedCol = savedCols.find((sc: any) => sc.id === c.id);
+            if (savedCol && typeof savedCol.visible !== "undefined") {
+              return { ...c, visible: savedCol.visible };
+            }
+            return c;
+          });
+        } catch (e) {
+          console.error("Failed to load table settings", e);
+        }
       }
     }
-  }
+  });
 
   // Sorting Logic
   function handleSort(colId: string) {

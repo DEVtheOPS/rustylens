@@ -114,6 +114,7 @@
           ondragover={(e) => handleDragOver(e, index)}
           ondragend={handleDragEnd}
           ondrop={handleDrop}
+          role="listitem"
         >
           <!-- Drag indicator -->
           {#if dragOverIndex === index && draggedIndex !== index}

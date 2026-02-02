@@ -205,11 +205,18 @@
   <div
     class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center"
     onclick={handleClose}
+    onkeydown={(e) => e.key === 'Escape' && handleClose()}
+    role="button"
+    tabindex="-1"
   >
     <!-- Modal -->
     <div
       class="bg-bg-main rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col"
       onclick={(e) => e.stopPropagation()}
+      onkeydown={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+      tabindex="-1"
     >
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-border-main">
@@ -369,7 +376,7 @@
                     <div class="flex items-start gap-2">
                       <!-- Icon Preview and Input -->
                       <div class="flex flex-col gap-1">
-                        <label class="text-xs text-text-muted">Icon</label>
+                        <span class="text-xs text-text-muted">Icon</span>
                         <div class="flex items-center gap-2">
                           <!-- Icon Preview -->
                           <div class="w-12 h-12 flex items-center justify-center border border-border-main rounded bg-bg-main overflow-hidden">
@@ -405,12 +412,12 @@
                       </div>
                       
                       <div class="flex flex-col gap-1 flex-1">
-                        <label class="text-xs text-text-muted">
+                        <span class="text-xs text-text-muted">
                           Display Name
                           {#if selectedContexts.has(ctx.context_name)}
                             <span class="text-red-400">*</span>
                           {/if}
-                        </label>
+                        </span>
                         <Input
                           value={ctx.display_name}
                           oninput={(e) => updateDisplayName(ctx.context_name, (e.currentTarget as HTMLInputElement).value)}
