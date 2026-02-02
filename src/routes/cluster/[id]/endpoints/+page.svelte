@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("Endpoints");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">Endpoints Placeholder</h2>
-</div>
+<WorkloadList title="Endpoints" listCommand="cluster_list_endpoints" deleteCommand="cluster_delete_endpoint" />

@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("HPA");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">HPA Placeholder</h2>
-</div>
+<WorkloadList title="HorizontalPodAutoscalers" listCommand="cluster_list_hpa" deleteCommand="cluster_delete_hpa" />

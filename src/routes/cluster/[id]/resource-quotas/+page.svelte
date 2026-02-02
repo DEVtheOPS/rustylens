@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("Resource Quotas");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">Resource Quotas Placeholder</h2>
-</div>
+<WorkloadList title="ResourceQuotas" listCommand="cluster_list_resource_quotas" deleteCommand="cluster_delete_resource_quota" />

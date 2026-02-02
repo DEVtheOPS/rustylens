@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("Pod Disruption Budgets");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">Pod Disruption Budgets Placeholder</h2>
-</div>
+<WorkloadList title="PodDisruptionBudgets" listCommand="cluster_list_pdb" deleteCommand="cluster_delete_pdb" />

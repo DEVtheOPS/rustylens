@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("Limit Ranges");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">Limit Ranges Placeholder</h2>
-</div>
+<WorkloadList title="LimitRanges" listCommand="cluster_list_limit_ranges" deleteCommand="cluster_delete_limit_range" />

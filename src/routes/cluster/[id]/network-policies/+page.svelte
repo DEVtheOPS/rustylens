@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("Network Policies");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">Network Policies Placeholder</h2>
-</div>
+<WorkloadList title="NetworkPolicies" listCommand="cluster_list_network_policies" deleteCommand="cluster_delete_network_policy" />

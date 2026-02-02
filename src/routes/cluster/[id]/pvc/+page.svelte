@@ -1,11 +1,4 @@
 <script lang="ts">
-  import { headerStore } from '$lib/stores/header.svelte';
-
-  $effect(() => {
-    headerStore.setTitle("Persistent Volume Claims");
-  });
+ import WorkloadList from "$lib/components/WorkloadList.svelte";
 </script>
-
-<div class="p-4">
-  <h2 class="text-xl">Persistent Volume Claims Placeholder</h2>
-</div>
+<WorkloadList title="PersistentVolumeClaims" listCommand="cluster_list_pvc" deleteCommand="cluster_delete_pvc" />
