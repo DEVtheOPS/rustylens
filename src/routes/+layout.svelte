@@ -3,10 +3,16 @@
   import IconSidebar from "$lib/components/IconSidebar.svelte";
   import ClusterImportModal from "$lib/components/ClusterImportModal.svelte";
   import { settingsStore } from "$lib/stores/settings.svelte";
+  import { clusterStore } from "$lib/stores/cluster.svelte";
+  import { onMount } from "svelte";
 
   let { children } = $props();
 
   let importModalOpen = $state(false);
+
+  onMount(() => {
+    clusterStore.refresh();
+  });
 
   $effect(() => {
     if (typeof document !== "undefined") {

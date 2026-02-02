@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Run the development server (Frontend + Backend)
+    cmds:
+      - pnpm tauri dev
+
+  test:unit:
+    desc: Run frontend unit tests
+    cmds:
+      - pnpm test:unit
+
+  test:e2e:
+    desc: Run frontend end-to-end tests (Playwright)
+    cmds:
+      - pnpm test
+
+  test:backend:
+    desc: Run backend (Rust) tests
+    cmds:
+      - cargo test --manifest-path src-tauri/Cargo.toml
+
+  test:
+    desc: Run all unit and backend tests
+    deps: [test:unit, test:backend]
+
+  test:all:
+    desc: Run ALL tests including E2E
+    deps: [test, test:e2e]
+
+  build:
+    desc: Build the application for the current platform
+    cmds:
+      - pnpm tauri build

@@ -19,7 +19,7 @@ pub fn run() {
     let db_path = config::get_app_config_dir().join("clusters.db");
     let cluster_manager = cluster_manager::ClusterManager::new(db_path)
         .expect("Failed to initialize cluster manager");
-    let cluster_manager_state = cluster_manager::ClusterManagerState(std::sync::Mutex::new(cluster_manager));
+    let cluster_manager_state = cluster_manager::ClusterManagerState(std::sync::Arc::new(std::sync::Mutex::new(cluster_manager)));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_websocket::init())
@@ -29,6 +29,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(cluster_manager_state)
+        .manage(k8s::WatcherState::default())
         .invoke_handler(tauri::generate_handler![
             greet,
             // Legacy k8s commands (deprecated, kept for backwards compatibility)

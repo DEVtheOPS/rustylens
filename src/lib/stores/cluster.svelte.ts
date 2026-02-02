@@ -8,7 +8,7 @@ class ClusterStore {
   loading = $state(false);
 
   constructor() {
-    this.refresh();
+    // defer refresh to onMount in layout
   }
 
   async refresh() {

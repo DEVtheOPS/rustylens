@@ -18,6 +18,17 @@ use kube::runtime::watcher;
 use kube::{Api, Client, Config};
 use std::path::PathBuf;
 use tauri::{Emitter, State, Window};
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use tauri::async_runtime::JoinHandle;
+
+pub struct WatcherState(pub Arc<Mutex<HashMap<String, JoinHandle<()>>>>);
+
+impl Default for WatcherState {
+    fn default() -> Self {
+        Self(Arc::new(Mutex::new(HashMap::new())))
+    }
+}
 
 // Helper to find which file contains the context
 fn find_kubeconfig_path_for_context(context_name: &str) -> Option<PathBuf> {
@@ -85,21 +96,30 @@ async fn create_client_for_context(context_name: &str) -> Result<Client, String>
 
 // NEW: Helper to create client from cluster ID
 async fn create_client_for_cluster(cluster_id: &str, state: &State<'_, ClusterManagerState>) -> Result<Client, String> {
-    // Get config path while holding lock, then drop it immediately
-    let config_path = {
-        let manager = state.0.lock().unwrap();
-        let cluster = manager.get_cluster(cluster_id)?
-            .ok_or_else(|| format!("Cluster '{}' not found", cluster_id))?;
-        PathBuf::from(&cluster.config_path)
-    }; // Lock is dropped here
-    
-    if !config_path.exists() {
-        return Err(format!("Config file not found: {:?}", config_path));
-    }
+    let manager = state.0.clone();
+    let cluster_id = cluster_id.to_string();
 
-    let kubeconfig = Kubeconfig::read_from(&config_path)
-        .map_err(|e| format!("Failed to read kubeconfig {:?}: {}", config_path, e))?;
+    // 1. Blocking I/O (DB + File Read)
+    let kubeconfig = tauri::async_runtime::spawn_blocking(move || {
+        // Get config path
+        let config_path = {
+            let manager = manager.lock().unwrap();
+            let cluster = manager.get_cluster(&cluster_id)?
+                .ok_or_else(|| format!("Cluster '{}' not found", cluster_id))?;
+            PathBuf::from(&cluster.config_path)
+        };
+        
+        if !config_path.exists() {
+            return Err(format!("Config file not found: {:?}", config_path));
+        }
 
+        let kubeconfig = Kubeconfig::read_from(&config_path)
+            .map_err(|e| format!("Failed to read kubeconfig {:?}: {}", config_path, e))?;
+
+        Ok(kubeconfig)
+    }).await.map_err(|e| e.to_string())??;
+
+    // 2. Async Config Loading
     // The extracted config should have only one context, use current_context
     let context_name = kubeconfig.current_context.as_ref()
         .ok_or_else(|| "No current context in kubeconfig".to_string())?;
@@ -998,6 +1018,7 @@ pub async fn cluster_stream_container_logs(
     stream_id: String,
     window: Window,
     state: State<'_, ClusterManagerState>,
+    watcher_state: State<'_, WatcherState>,
 ) -> Result<(), String> {
     use futures::{AsyncBufReadExt, TryStreamExt};
     use kube::api::LogParams;
@@ -1012,7 +1033,20 @@ pub async fn cluster_stream_container_logs(
         ..Default::default()
     };
 
-    tauri::async_runtime::spawn(async move {
+    let key = format!("logs:{}", stream_id);
+    
+    // Abort existing if any
+    {
+        let mut watchers = watcher_state.0.lock().unwrap();
+        if let Some(handle) = watchers.remove(&key) {
+            handle.abort();
+        }
+    }
+
+    let watchers = watcher_state.inner().0.clone();
+    let key_clone = key.clone();
+
+    let handle = tauri::async_runtime::spawn(async move {
         match pods.log_stream(&pod_name, &log_params).await {
             Ok(stream) => {
                 let mut lines = stream.lines();
@@ -1037,7 +1071,17 @@ pub async fn cluster_stream_container_logs(
                 println!("Failed to open log stream: {}", e);
             }
         }
+        
+        // Cleanup
+        let mut watchers = watchers.lock().unwrap();
+        watchers.remove(&key_clone);
     });
+
+    // Store new handle
+    {
+        let mut watchers = watcher_state.0.lock().unwrap();
+        watchers.insert(key, handle);
+    }
 
     Ok(())
 }
@@ -1048,6 +1092,7 @@ pub async fn cluster_start_pod_watch(
     namespace: String,
     window: Window,
     state: State<'_, ClusterManagerState>,
+    watcher_state: State<'_, WatcherState>,
 ) -> Result<(), String> {
     use kube::runtime::watcher::Config as WatchConfig;
 
@@ -1060,8 +1105,20 @@ pub async fn cluster_start_pod_watch(
     };
 
     let config = WatchConfig::default();
+    let key = format!("pod_watch:{}:{}", cluster_id, namespace);
 
-    tauri::async_runtime::spawn(async move {
+    // Abort existing if any
+    {
+        let mut watchers = watcher_state.0.lock().unwrap();
+        if let Some(handle) = watchers.remove(&key) {
+            handle.abort();
+        }
+    }
+
+    let watchers = watcher_state.inner().0.clone();
+    let key_clone = key.clone();
+
+    let handle = tauri::async_runtime::spawn(async move {
         let mut stream = watcher(api, config).boxed();
 
         while let Some(result) = stream.next().await {
@@ -1084,7 +1141,17 @@ pub async fn cluster_start_pod_watch(
                 }
             }
         }
+        
+        // Cleanup
+        let mut watchers = watchers.lock().unwrap();
+        watchers.remove(&key_clone);
     });
+
+    // Store new handle
+    {
+        let mut watchers = watcher_state.0.lock().unwrap();
+        watchers.insert(key, handle);
+    }
 
     Ok(())
 }
@@ -1295,7 +1362,7 @@ fn map_deployment_to_summary(d: Deployment) -> WorkloadSummary {
     let spec = d.spec.unwrap_or_default();
     let status = d.status.unwrap_or_default();
     
-    let replicas = status.replicas.unwrap_or(0);
+    let _replicas = status.replicas.unwrap_or(0);
     let ready = status.ready_replicas.unwrap_or(0);
     let status_str = format!("{}/{}", ready, spec.replicas.unwrap_or(1));
 
@@ -1558,7 +1625,7 @@ fn map_secret_to_summary(s: Secret) -> WorkloadSummary {
         age: calculate_age(meta.creation_timestamp.as_ref()),
         created_at: get_created_at(meta.creation_timestamp.as_ref()),
         labels: meta.labels.unwrap_or_default(),
-        status: s.type_.unwrap_or_else(|| "Opaque".to_string()),
+        status: format!("{} ({} items)", s.type_.unwrap_or_else(|| "Opaque".to_string()), count),
         images: vec![],
     }
 }

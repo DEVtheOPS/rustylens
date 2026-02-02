@@ -1,7 +1,7 @@
 use rusqlite::{Connection, params, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -231,7 +231,7 @@ impl ClusterManager {
 // Tauri commands
 use tauri::State;
 
-pub struct ClusterManagerState(pub Mutex<ClusterManager>);
+pub struct ClusterManagerState(pub Arc<Mutex<ClusterManager>>);
 
 #[tauri::command]
 pub fn db_list_clusters(state: State<ClusterManagerState>) -> Result<Vec<Cluster>, String> {

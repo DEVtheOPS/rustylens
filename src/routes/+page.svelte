@@ -37,6 +37,9 @@
     clustersStore.load();
   });
 
+  const isEmpty = $derived(clustersStore.clusters.length === 0 && !clustersStore.loading);
+  const showTable = $derived(clustersStore.clusters.length > 0 || clustersStore.loading);
+
   async function handleRefresh() {
     loading = true;
     await clustersStore.load();
@@ -125,7 +128,7 @@
 
   <!-- Content -->
   <div class="flex-1 overflow-auto p-6">
-    {#if clustersStore.clusters.length === 0 && !clustersStore.loading}
+    {#if isEmpty}
       <div class="flex flex-col items-center justify-center h-full text-center space-y-4">
         <div class="text-6xl">🚀</div>
         <h2 class="text-xl font-semibold">No Clusters Yet</h2>
