@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kore - Kubernetes IDE</title>
+  <meta name="description" content="A lightweight, open-source Kubernetes IDE built with Tauri and Svelte">
+  <link rel="icon" type="image/png" href="icon.png">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0a0f;
+      --text: #f0f0f5;
+      --text-muted: #8888aa;
+      --accent: #4285f4;
+      --accent-hover: #5a9bff;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container { text-align: center; max-width: 400px; }
+    .logo {
+      width: 128px;
+      height: 128px;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 4px 24px rgba(66, 133, 244, 0.3));
+    }
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    .tagline {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+    .version {
+      display: inline-block;
+      background: rgba(66, 133, 244, 0.15);
+      color: var(--accent);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      padding: 0.875rem 1.75rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .download-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .download-btn svg { width: 18px; height: 18px; }
+    .platform { color: var(--text-muted); font-size: 0.8rem; margin-top: 0.75rem; }
+    .links { margin-top: 3rem; display: flex; gap: 1.5rem; justify-content: center; }
+    .links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      transition: color 0.15s;
+    }
+    .links a:hover { color: var(--text); }
+    .loading { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="icon.png" alt="Kore" class="logo">
+    <h1>Kore</h1>
+    <p class="tagline">Kubernetes IDE</p>
+    <div class="version loading" id="version">Loading...</div>
+    <a href="#" class="download-btn" id="download-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span id="download-text">Download</span>
+    </a>
+    <p class="platform" id="platform"></p>
+    <div class="links">
+      <a href="https://github.com/DEVtheOPS/kore">GitHub</a>
+      <a href="https://github.com/DEVtheOPS/kore/releases">All Releases</a>
+    </div>
+  </div>
+  <script>
+    const REPO = 'DEVtheOPS/kore';
+    function detectPlatform() {
+      const ua = navigator.userAgent.toLowerCase();
+      if (ua.includes('mac')) return { os: 'macos', arch: ua.includes('arm') ? 'aarch64' : 'x86_64' };
+      if (ua.includes('win')) return { os: 'windows', arch: 'x86_64' };
+      if (ua.includes('linux')) return { os: 'linux', arch: 'x86_64' };
+      return null;
+    }
+    function getPlatformKey(p) {
+      if (!p) return null;
+      if (p.os === 'macos') return `darwin-${p.arch}`;
+      if (p.os === 'windows') return 'windows-x86_64';
+      if (p.os === 'linux') return 'linux-x86_64';
+      return null;
+    }
+    function getPlatformLabel(p) {
+      if (!p) return '';
+      const labels = { 'macos-aarch64': 'macOS (Apple Silicon)', 'macos-x86_64': 'macOS (Intel)', 'windows-x86_64': 'Windows', 'linux-x86_64': 'Linux' };
+      return labels[`${p.os}-${p.arch}`] || '';
+    }
+    async function init() {
+      const versionEl = document.getElementById('version');
+      const downloadBtn = document.getElementById('download-btn');
+      const downloadText = document.getElementById('download-text');
+      const platformEl = document.getElementById('platform');
+      try {
+        const res = await fetch('update.json');
+        const data = await res.json();
+        versionEl.textContent = `v${data.version}`;
+        versionEl.classList.remove('loading');
+        const platform = detectPlatform();
+        const platformKey = getPlatformKey(platform);
+        if (platformKey && data.platforms[platformKey]) {
+          downloadBtn.href = data.platforms[platformKey].url;
+          downloadText.textContent = `Download for ${getPlatformLabel(platform)}`;
+          platformEl.textContent = `v${data.version}`;
+        } else {
+          downloadBtn.href = `https://github.com/${REPO}/releases/latest`;
+          downloadText.textContent = 'View Downloads';
+          platformEl.textContent = 'All platforms available';
+        }
+      } catch (e) {
+        versionEl.textContent = 'Latest';
+        versionEl.classList.remove('loading');
+        downloadBtn.href = `https://github.com/${REPO}/releases/latest`;
+        downloadText.textContent = 'View Releases';
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
