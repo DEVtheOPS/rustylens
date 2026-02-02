@@ -94,17 +94,31 @@
 pnpm tauri build
 ```
 
-### Running Tests
+### Running Tests & Coverage
+
+**Frontend (Svelte/TS)**
 
 ```bash
-# Run all Playwright E2E tests
+# Run Unit Tests
+pnpm test:unit
+
+# Run Unit Tests with Coverage
+pnpm test:coverage
+
+# Run Playwright E2E Tests
 pnpm test
+```
 
-# Run tests with UI
-pnpm test:ui
+**Backend (Rust)**
 
-# Run specific test file
-pnpm test tests/01-layout-navigation.spec.ts
+```bash
+# Run Unit Tests
+cd src-tauri
+cargo test
+
+# Run Coverage (requires cargo-llvm-cov)
+# Install: cargo install cargo-llvm-cov
+cargo llvm-cov
 ```
 
 See [tests/README.md](tests/README.md) for more details.

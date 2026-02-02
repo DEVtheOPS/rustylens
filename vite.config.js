@@ -9,6 +9,16 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
     plugins: [sveltekit(), tailwindcss()],
 
+    test: {
+        include: ['src/**/*.{test,spec}.{js,ts}'],
+        environment: 'jsdom',
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html'],
+            include: ['src/**/*.{js,ts,svelte}']
+        }
+    },
+
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //
     // 1. prevent Vite from obscuring rust errors
