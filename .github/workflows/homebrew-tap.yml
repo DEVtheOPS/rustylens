@@ -1,0 +1,102 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.1.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  update-tap:
+    name: Update Homebrew Cask
+    runs-on: ubuntu-latest
+    if: ${{ vars.HOMEBREW_TAP_REPO != '' }}
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fetch release metadata
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.value }}"
+          gh api "repos/${{ github.repository }}/releases/tags/${TAG}" > release.json
+
+          # Prefer universal dmg, fallback to first dmg.
+          ASSET_URL=$(jq -r '
+            (
+              .assets[]
+              | select(.name | test("(?i)universal.*\\.dmg$"))
+              | .browser_download_url
+            ) // (
+              .assets[]
+              | select(.name | test("\\.dmg$"))
+              | .browser_download_url
+            )' release.json | head -n1)
+
+          ASSET_NAME=$(basename "$ASSET_URL")
+          if [ -z "$ASSET_URL" ] || [ "$ASSET_URL" = "null" ]; then
+            echo "No .dmg asset found for tag ${TAG}" >&2
+            exit 1
+          fi
+
+          curl -L "$ASSET_URL" -o "$ASSET_NAME"
+          SHA256=$(sha256sum "$ASSET_NAME" | awk '{print $1}')
+          VERSION="${TAG#v}"
+
+          echo "asset_url=$ASSET_URL" >> "$GITHUB_OUTPUT"
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.HOMEBREW_TAP_REPO }}
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+
+      - name: Update Cask
+        run: |
+          mkdir -p tap/Casks
+          cat > tap/Casks/kore.rb <<'EOF'
+          cask "kore" do
+            version "${{ steps.release.outputs.version }}"
+            sha256 "${{ steps.release.outputs.sha256 }}"
+
+            url "${{ steps.release.outputs.asset_url }}"
+            name "Kore"
+            desc "Kubernetes Orchestration and Resource Explorer"
+            homepage "https://github.com/${{ github.repository }}"
+
+            app "Kore.app"
+
+            caveats <<~EOS
+              If macOS blocks launch, remove quarantine and reopen:
+                xattr -dr com.apple.quarantine /Applications/Kore.app
+            EOS
+          end
+          EOF
+
+      - name: Commit and push tap update
+        run: |
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/kore.rb
+          git commit -m "kore ${{ steps.release.outputs.version }}" || echo "No changes to commit"
+          git push
