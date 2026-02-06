@@ -811,7 +811,10 @@ pub async fn cluster_stream_container_logs(
 
     // Abort existing if any
     {
-        let mut watchers = watcher_state.0.lock().unwrap();
+        let mut watchers = watcher_state
+            .0
+            .lock()
+            .map_err(|e| format!("Watcher state lock poisoned: {}", e))?;
         if let Some(handle) = watchers.remove(&key) {
             handle.abort();
         }
@@ -847,13 +850,19 @@ pub async fn cluster_stream_container_logs(
         }
 
         // Cleanup
-        let mut watchers = watchers.lock().unwrap();
-        watchers.remove(&key_clone);
+        if let Ok(mut watchers) = watchers.lock() {
+            watchers.remove(&key_clone);
+        } else {
+            eprintln!("Warning: failed to clean up log watcher state");
+        }
     });
 
     // Store new handle
     {
-        let mut watchers = watcher_state.0.lock().unwrap();
+        let mut watchers = watcher_state
+            .0
+            .lock()
+            .map_err(|e| format!("Watcher state lock poisoned: {}", e))?;
         watchers.insert(key, handle);
     }
 
@@ -883,7 +892,10 @@ pub async fn cluster_start_pod_watch(
 
     // Abort existing if any
     {
-        let mut watchers = watcher_state.0.lock().unwrap();
+        let mut watchers = watcher_state
+            .0
+            .lock()
+            .map_err(|e| format!("Watcher state lock poisoned: {}", e))?;
         if let Some(handle) = watchers.remove(&key) {
             handle.abort();
         }
@@ -917,13 +929,19 @@ pub async fn cluster_start_pod_watch(
         }
 
         // Cleanup
-        let mut watchers = watchers.lock().unwrap();
-        watchers.remove(&key_clone);
+        if let Ok(mut watchers) = watchers.lock() {
+            watchers.remove(&key_clone);
+        } else {
+            eprintln!("Warning: failed to clean up pod watcher state");
+        }
     });
 
     // Store new handle
     {
-        let mut watchers = watcher_state.0.lock().unwrap();
+        let mut watchers = watcher_state
+            .0
+            .lock()
+            .map_err(|e| format!("Watcher state lock poisoned: {}", e))?;
         watchers.insert(key, handle);
     }
 

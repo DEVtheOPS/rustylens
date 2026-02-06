@@ -3,6 +3,7 @@ use kube::config::Kubeconfig;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::State;
+use std::io::Write;
 
 const MAX_DISCOVERY_DEPTH: usize = 8;
 
@@ -151,8 +152,16 @@ pub fn extract_context(
     let yaml_content = serde_yaml::to_string(&new_config)
         .map_err(|e| format!("Failed to serialize kubeconfig: {}", e))?;
 
-    std::fs::write(&config_path, yaml_content)
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(&config_path)
+        .map_err(|e| format!("Failed to open kubeconfig for writing: {}", e))?;
+    file.write_all(yaml_content.as_bytes())
         .map_err(|e| format!("Failed to write kubeconfig: {}", e))?;
+    crate::config::set_owner_only_file_permissions(&config_path)
+        .map_err(|e| format!("Failed to set secure permissions: {}", e))?;
 
     Ok(config_path)
 }

@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[allow(dead_code)]
@@ -34,11 +36,13 @@ pub fn init_directories() -> std::io::Result<()> {
     if !app_dir.exists() {
         fs::create_dir_all(&app_dir)?;
     }
+    set_owner_only_dir_permissions(&app_dir)?;
 
     let kube_dir = get_kubeconfigs_dir();
     if !kube_dir.exists() {
         fs::create_dir_all(&kube_dir)?;
     }
+    set_owner_only_dir_permissions(&kube_dir)?;
 
     Ok(())
 }
@@ -70,8 +74,36 @@ pub async fn import_kubeconfig(path: String) -> Result<String, String> {
 
     fs::copy(&validated_source, &validated_dest)
         .map_err(|e| format!("Failed to copy config: {}", e))?;
+    set_owner_only_file_permissions(&validated_dest)
+        .map_err(|e| format!("Failed to set secure permissions: {}", e))?;
 
     Ok(dest_name)
+}
+
+pub(crate) fn set_owner_only_dir_permissions(path: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        if let Err(e) = fs::set_permissions(path, fs::Permissions::from_mode(0o700)) {
+            // Some sandboxed or managed filesystems disallow chmod; don't block app startup.
+            if e.kind() != std::io::ErrorKind::PermissionDenied {
+                return Err(e);
+            }
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn set_owner_only_file_permissions(path: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        if let Err(e) = fs::set_permissions(path, fs::Permissions::from_mode(0o600)) {
+            // Some sandboxed or managed filesystems disallow chmod; keep best-effort behavior.
+            if e.kind() != std::io::ErrorKind::PermissionDenied {
+                return Err(e);
+            }
+        }
+    }
+    Ok(())
 }
 
 /// Validate that a path is within the allowed kubeconfigs directory
@@ -150,6 +182,24 @@ mod tests {
         init_directories().unwrap();
         let err = validate_import_source(&get_kubeconfigs_dir()).unwrap_err();
         assert!(err.contains("not a file"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn set_owner_only_permissions_on_file_and_dir() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let dir = temp_dir.path().join("secure-dir");
+        let file = dir.join("secret.yaml");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(&file, "secret").unwrap();
+
+        set_owner_only_dir_permissions(&dir).unwrap();
+        set_owner_only_file_permissions(&file).unwrap();
+
+        let dir_mode = fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
+        let file_mode = fs::metadata(&file).unwrap().permissions().mode() & 0o777;
+        assert_eq!(dir_mode, 0o700);
+        assert_eq!(file_mode, 0o600);
     }
 
     #[cfg(unix)]

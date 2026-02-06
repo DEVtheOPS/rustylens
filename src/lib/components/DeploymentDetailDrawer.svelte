@@ -8,12 +8,6 @@
   import { page } from '$app/stores';
   import { activeClusterStore } from '$lib/stores/activeCluster.svelte';
   import yaml from 'js-yaml';
-  import hljs from 'highlight.js/lib/core';
-  import yamlLang from 'highlight.js/lib/languages/yaml';
-  import 'highlight.js/styles/github-dark.css';
-
-  // Register YAML language for syntax highlighting
-  hljs.registerLanguage('yaml', yamlLang);
 
   interface DeploymentCondition {
     condition_type: string;
@@ -169,10 +163,6 @@
       // Not JSON, return as-is
       return { formatted: value, isYaml: false };
     }
-  }
-
-  function highlightYaml(yamlStr: string): string {
-    return hljs.highlight(yamlStr, { language: 'yaml' }).value;
   }
 
   function handlePodClick(pod: DeploymentPodInfo) {
@@ -341,7 +331,7 @@
               <div class="p-3 bg-bg-panel rounded-md">
                 <div class="text-text-muted font-semibold mb-2 text-xs">{key}</div>
                 {#if isYaml}
-                  <pre class="text-xs overflow-x-auto bg-bg-main rounded p-2"><code class="language-yaml">{@html highlightYaml(formatted)}</code></pre>
+                  <pre class="text-xs overflow-x-auto bg-bg-main rounded p-2"><code class="language-yaml">{formatted}</code></pre>
                 {:else}
                   <div class="text-xs font-mono break-all text-text">{formatted}</div>
                 {/if}
