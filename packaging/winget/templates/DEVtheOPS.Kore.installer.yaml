@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+PackageIdentifier: DEVtheOPS.Kore
+PackageVersion: __VERSION__
+Platform:
+  - Windows.Desktop
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+Installers:
+  - Architecture: x64
+    InstallerType: nullsoft
+    InstallerUrl: __INSTALLER_URL__
+    InstallerSha256: __INSTALLER_SHA256__
+    Scope: machine
+    InstallerSwitches:
+      Silent: /S
+      SilentWithProgress: /S
+ManifestType: installer
+ManifestVersion: 1.9.0

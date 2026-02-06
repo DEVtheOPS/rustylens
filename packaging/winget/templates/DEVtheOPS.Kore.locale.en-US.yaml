@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+PackageIdentifier: DEVtheOPS.Kore
+PackageVersion: __VERSION__
+PackageLocale: en-US
+Publisher: DEVtheOPS
+PublisherUrl: https://github.com/DEVtheOPS
+PublisherSupportUrl: https://github.com/DEVtheOPS/kore/issues
+Author: DEVtheOPS
+PackageName: Kore
+PackageUrl: https://github.com/DEVtheOPS/kore
+License: GPL-3.0-or-later
+LicenseUrl: https://github.com/DEVtheOPS/kore/blob/main/LICENSE
+ShortDescription: Kubernetes Orchestration and Resource Explorer
+Description: Lightweight, open-source Kubernetes IDE built with Tauri and Svelte.
+ReleaseNotesUrl: https://github.com/DEVtheOPS/kore/releases/tag/v__VERSION__
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0
