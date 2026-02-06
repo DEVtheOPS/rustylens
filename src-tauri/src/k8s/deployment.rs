@@ -58,17 +58,10 @@ pub async fn cluster_get_deployment_details(
     let status = deployment.status.unwrap_or_default();
 
     // Extract labels and annotations as HashMap
-    let labels: HashMap<String, String> = meta
-        .labels
-        .unwrap_or_default()
-        .into_iter()
-        .collect();
+    let labels: HashMap<String, String> = meta.labels.unwrap_or_default().into_iter().collect();
 
-    let annotations: HashMap<String, String> = meta
-        .annotations
-        .unwrap_or_default()
-        .into_iter()
-        .collect();
+    let annotations: HashMap<String, String> =
+        meta.annotations.unwrap_or_default().into_iter().collect();
 
     // Extract selector
     let selector: HashMap<String, String> = spec
@@ -367,9 +360,8 @@ pub async fn cluster_get_deployment_replicasets(
                 .owner_references
                 .as_ref()
                 .map(|refs| {
-                    refs.iter().any(|owner| {
-                        owner.kind == "Deployment" && owner.uid == deployment_uid
-                    })
+                    refs.iter()
+                        .any(|owner| owner.kind == "Deployment" && owner.uid == deployment_uid)
                 })
                 .unwrap_or(false)
         })
@@ -497,18 +489,10 @@ mod tests {
             reason: Some(reason.to_string()),
             message: Some(message.to_string()),
             count: Some(count),
-            first_timestamp: last_timestamp.map(|ts| {
-                Time(
-                    ts.parse::<k8s_openapi::jiff::Timestamp>()
-                        .unwrap(),
-                )
-            }),
-            last_timestamp: last_timestamp.map(|ts| {
-                Time(
-                    ts.parse::<k8s_openapi::jiff::Timestamp>()
-                        .unwrap(),
-                )
-            }),
+            first_timestamp: last_timestamp
+                .map(|ts| Time(ts.parse::<k8s_openapi::jiff::Timestamp>().unwrap())),
+            last_timestamp: last_timestamp
+                .map(|ts| Time(ts.parse::<k8s_openapi::jiff::Timestamp>().unwrap())),
             source: Some(EventSource {
                 component: Some("deployment-controller".to_string()),
                 host: None,
@@ -818,10 +802,10 @@ mod tests {
                 uid: Some("uid-123".to_string()),
                 ..Default::default()
             },
-            type_: None,          // Missing type
-            reason: None,         // Missing reason
-            message: None,        // Missing message
-            count: None,          // Missing count
+            type_: None,   // Missing type
+            reason: None,  // Missing reason
+            message: None, // Missing message
+            count: None,   // Missing count
             first_timestamp: None,
             last_timestamp: None,
             source: None, // Missing source
@@ -832,10 +816,10 @@ mod tests {
 
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].event_type, "Normal"); // Default value
-        assert_eq!(result[0].reason, "");           // Default empty
-        assert_eq!(result[0].message, "");          // Default empty
-        assert_eq!(result[0].count, 1);             // Default 1
-        assert_eq!(result[0].source, "unknown");    // Default unknown
+        assert_eq!(result[0].reason, ""); // Default empty
+        assert_eq!(result[0].message, ""); // Default empty
+        assert_eq!(result[0].count, 1); // Default 1
+        assert_eq!(result[0].source, "unknown"); // Default unknown
         assert!(result[0].first_timestamp.is_none());
         assert!(result[0].last_timestamp.is_none());
     }
@@ -853,9 +837,10 @@ mod tests {
                 ("app".to_string(), "nginx".to_string()),
                 ("env".to_string(), "production".to_string()),
             ]),
-            annotations: HashMap::from([
-                ("kubectl.kubernetes.io/last-applied-configuration".to_string(), "{}".to_string()),
-            ]),
+            annotations: HashMap::from([(
+                "kubectl.kubernetes.io/last-applied-configuration".to_string(),
+                "{}".to_string(),
+            )]),
             replicas_desired: 3,
             replicas_updated: 3,
             replicas_total: 3,
@@ -863,15 +848,13 @@ mod tests {
             replicas_unavailable: 0,
             strategy_type: "RollingUpdate".to_string(),
             selector: HashMap::from([("app".to_string(), "nginx".to_string())]),
-            conditions: vec![
-                DeploymentCondition {
-                    condition_type: "Available".to_string(),
-                    status: "True".to_string(),
-                    reason: Some("MinimumReplicasAvailable".to_string()),
-                    message: Some("Deployment has minimum availability.".to_string()),
-                    last_transition_time: Some("2024-01-15T10:35:00Z".to_string()),
-                },
-            ],
+            conditions: vec![DeploymentCondition {
+                condition_type: "Available".to_string(),
+                status: "True".to_string(),
+                reason: Some("MinimumReplicasAvailable".to_string()),
+                message: Some("Deployment has minimum availability.".to_string()),
+                last_transition_time: Some("2024-01-15T10:35:00Z".to_string()),
+            }],
             images: vec!["nginx:1.19".to_string()],
         };
 
@@ -882,7 +865,8 @@ mod tests {
         assert!(json.contains("abc-123-def-456"));
 
         // Test deserialization
-        let deserialized: DeploymentDetails = serde_json::from_str(&json).expect("Should deserialize from JSON");
+        let deserialized: DeploymentDetails =
+            serde_json::from_str(&json).expect("Should deserialize from JSON");
         assert_eq!(deserialized.name, "nginx-deployment");
         assert_eq!(deserialized.namespace, "default");
         assert_eq!(deserialized.replicas_desired, 3);
@@ -910,7 +894,8 @@ mod tests {
         };
 
         let json = serde_json::to_string(&details).expect("Should serialize empty fields");
-        let deserialized: DeploymentDetails = serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: DeploymentDetails =
+            serde_json::from_str(&json).expect("Should deserialize");
 
         assert_eq!(deserialized.labels.len(), 0);
         assert_eq!(deserialized.conditions.len(), 0);
@@ -931,7 +916,8 @@ mod tests {
         assert!(json.contains("Progressing"));
         assert!(json.contains("NewReplicaSetAvailable"));
 
-        let deserialized: DeploymentCondition = serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: DeploymentCondition =
+            serde_json::from_str(&json).expect("Should deserialize");
         assert_eq!(deserialized.condition_type, "Progressing");
         assert_eq!(deserialized.status, "True");
         assert!(deserialized.reason.is_some());
@@ -948,7 +934,8 @@ mod tests {
         };
 
         let json = serde_json::to_string(&condition).expect("Should serialize with None fields");
-        let deserialized: DeploymentCondition = serde_json::from_str(&json).expect("Should deserialize");
+        let deserialized: DeploymentCondition =
+            serde_json::from_str(&json).expect("Should deserialize");
 
         assert!(deserialized.reason.is_none());
         assert!(deserialized.message.is_none());
@@ -1020,8 +1007,14 @@ mod tests {
         };
 
         assert_eq!(details.conditions.len(), 2);
-        assert!(details.conditions.iter().any(|c| c.condition_type == "Available"));
-        assert!(details.conditions.iter().any(|c| c.condition_type == "Progressing"));
+        assert!(details
+            .conditions
+            .iter()
+            .any(|c| c.condition_type == "Available"));
+        assert!(details
+            .conditions
+            .iter()
+            .any(|c| c.condition_type == "Progressing"));
     }
 
     #[test]
@@ -1084,9 +1077,7 @@ mod tests {
             ("team".to_string(), "backend".to_string()),
         ]);
 
-        let selector = HashMap::from([
-            ("app".to_string(), "myapp".to_string()),
-        ]);
+        let selector = HashMap::from([("app".to_string(), "myapp".to_string())]);
 
         let details = DeploymentDetails {
             name: "label-test".to_string(),

@@ -50,7 +50,9 @@ pub fn calculate_age(
     }
 }
 
-pub fn get_created_at(timestamp: Option<&k8s_openapi::apimachinery::pkg::apis::meta::v1::Time>) -> i64 {
+pub fn get_created_at(
+    timestamp: Option<&k8s_openapi::apimachinery::pkg::apis::meta::v1::Time>,
+) -> i64 {
     if let Some(ts) = timestamp {
         if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&ts.0.to_string()) {
             return dt.timestamp();

@@ -8,7 +8,6 @@ pub mod watcher;
 pub mod workload;
 
 pub use client::*;
-pub use common::*;
 pub use deployment::*;
 pub use metrics::*;
 pub use pod::*;

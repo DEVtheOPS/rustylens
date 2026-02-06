@@ -5,8 +5,8 @@ use k8s_openapi::api::apps::v1::{DaemonSet, Deployment, ReplicaSet, StatefulSet}
 use k8s_openapi::api::autoscaling::v1::HorizontalPodAutoscaler;
 use k8s_openapi::api::batch::v1::{CronJob, Job};
 use k8s_openapi::api::core::v1::{
-    ConfigMap, Endpoints, LimitRange, PersistentVolume, PersistentVolumeClaim, Pod,
-    PodTemplateSpec, ResourceQuota, Secret, Service, ServiceAccount,
+    ConfigMap, Endpoints, LimitRange, PersistentVolume, PersistentVolumeClaim, ResourceQuota,
+    Secret, Service, ServiceAccount,
 };
 use k8s_openapi::api::networking::v1::{Ingress, NetworkPolicy};
 use k8s_openapi::api::policy::v1::PodDisruptionBudget;

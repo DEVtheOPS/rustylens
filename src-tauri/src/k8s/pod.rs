@@ -4,8 +4,8 @@ use crate::k8s::watcher::WatcherState;
 use futures::{AsyncBufReadExt, StreamExt, TryStreamExt};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::{DeleteParams, ListParams, LogParams};
-use kube::{Api, Client};
 use kube::runtime::watcher;
+use kube::Api;
 use tauri::{Emitter, State, Window};
 
 #[derive(serde::Serialize, Clone, Debug)]

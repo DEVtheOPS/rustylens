@@ -60,17 +60,10 @@ pub async fn cluster_get_statefulset_details(
     let status = statefulset.status.unwrap_or_default();
 
     // Extract labels and annotations as HashMap
-    let labels: HashMap<String, String> = meta
-        .labels
-        .unwrap_or_default()
-        .into_iter()
-        .collect();
+    let labels: HashMap<String, String> = meta.labels.unwrap_or_default().into_iter().collect();
 
-    let annotations: HashMap<String, String> = meta
-        .annotations
-        .unwrap_or_default()
-        .into_iter()
-        .collect();
+    let annotations: HashMap<String, String> =
+        meta.annotations.unwrap_or_default().into_iter().collect();
 
     // Extract selector
     let selector: HashMap<String, String> = spec
@@ -164,7 +157,9 @@ pub struct StatefulSetPodInfo {
 }
 
 /// Helper function to format age from creation timestamp
-fn format_age_from_timestamp(creation_timestamp: &Option<k8s_openapi::apimachinery::pkg::apis::meta::v1::Time>) -> String {
+fn format_age_from_timestamp(
+    creation_timestamp: &Option<k8s_openapi::apimachinery::pkg::apis::meta::v1::Time>,
+) -> String {
     calculate_age(creation_timestamp.as_ref())
 }
 
@@ -367,7 +362,8 @@ pub async fn cluster_get_statefulset_events(
         .map_err(|e| format!("Failed to list events: {}", e))?;
 
     // Filter events for this statefulset
-    let event_infos = filter_statefulset_events(events_list.items, &statefulset_name, statefulset_uid);
+    let event_infos =
+        filter_statefulset_events(events_list.items, &statefulset_name, statefulset_uid);
 
     Ok(event_infos)
 }
